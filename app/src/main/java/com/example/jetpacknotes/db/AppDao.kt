@@ -1,0 +1,33 @@
+package com.example.jetpacknotes.db
+
+import androidx.lifecycle.LiveData
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+
+@Dao
+interface AppDao {
+
+    @Query("SELECT * FROM table_notes")
+    fun getAllNotes(): LiveData<List<Note>>
+
+    @Query("SELECT * FROM table_categories WHERE type = :type")
+    fun getCategoriesByType(type: CategoryType): LiveData<List<Category>>
+
+    @Insert(Note::class, OnConflictStrategy.REPLACE)
+    suspend fun insertNote(note: Note)
+
+    @Delete(Note::class)
+    suspend fun deleteNotes(notes: List<Note>)
+
+    @Query("SELECT * FROM table_notes WHERE id = :id")
+    suspend fun getNoteById(id: Int): Note?
+
+    @Insert(Category::class, OnConflictStrategy.REPLACE)
+    suspend fun insertCategory(category: Category)
+
+    @Delete(Category::class)
+    suspend fun deleteCategory(category: Category)
+}
