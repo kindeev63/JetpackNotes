@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import com.example.jetpacknotes.navigation.MainNavGraph
 import com.example.jetpacknotes.navigation.rememberNavigationState
 import com.example.jetpacknotes.notes.NoteEditScreen
+import com.example.jetpacknotes.reminders.ReminderEditScreen
 import com.example.jetpacknotes.viewModels.MainAppViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -18,8 +19,11 @@ fun MainScreen(
         bottomNavigationScreen = {
             BottomNavigationScreen(
                 mainAppViewModel = mainAppViewModel,
-                navigateToNote = { note ->
-                    navigationState.navigateToNoteEdit(note)
+                navigateToNote = { noteId ->
+                    navigationState.navigateToNoteEdit(noteId)
+                },
+                navigateToReminder = { reminderId ->
+                    navigationState.navigateToReminderEdit(reminderId)
                 }
             )
         },
@@ -27,6 +31,15 @@ fun MainScreen(
             NoteEditScreen(
                 mainAppViewModel = mainAppViewModel,
                 noteId = noteId,
+                onBackPressed = {
+                    navigationState.navHostController.popBackStack()
+                }
+            )
+        },
+        reminderEditScreenContent = { reminderId ->
+            ReminderEditScreen(
+                mainAppViewModel = mainAppViewModel,
+                reminderId = reminderId,
                 onBackPressed = {
                     navigationState.navHostController.popBackStack()
                 }

@@ -36,17 +36,6 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
         _selectedNotes.value = emptyList()
     }
 
-    fun createNote(function: (Note) -> Unit) {
-        val idsList = (mainAppViewModel.allNotes.value ?: emptyList()).map { it.id }
-        var noteId = 0
-        while (true) {
-            if (noteId !in idsList) break
-            noteId++
-        }
-        val note = Note(noteId, "", "", Calendar.getInstance().timeInMillis, "", 0)
-        mainAppViewModel.insertNote(note, function)
-    }
-
     fun createCategory(): Category {
         val idsList = (mainAppViewModel.categoryOfNotes.value ?: emptyList()).map { it.id }
         var categoryId = 0

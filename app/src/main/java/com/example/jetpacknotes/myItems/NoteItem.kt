@@ -1,4 +1,4 @@
-package com.example.jetpacknotes.notes
+package com.example.jetpacknotes.myItems
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.jetpacknotes.Colors
 import com.example.jetpacknotes.ItemColor
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

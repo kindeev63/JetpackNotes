@@ -1,4 +1,4 @@
-package com.example.jetpacknotes.notes
+package com.example.jetpacknotes.myItems
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background

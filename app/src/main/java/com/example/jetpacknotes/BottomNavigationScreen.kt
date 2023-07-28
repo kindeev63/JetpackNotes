@@ -23,12 +23,14 @@ import com.example.jetpacknotes.navigation.BottomNavigationNavGraph
 import com.example.jetpacknotes.navigation.Screen
 import com.example.jetpacknotes.navigation.rememberNavigationState
 import com.example.jetpacknotes.notes.NotesListScreen
+import com.example.jetpacknotes.reminders.RemindersListScreen
 import com.example.jetpacknotes.viewModels.MainAppViewModel
 
 @Composable
 fun BottomNavigationScreen(
     mainAppViewModel: MainAppViewModel,
-    navigateToNote: (noteId: Int) -> Unit
+    navigateToNote: (noteId: Int?) -> Unit,
+    navigateToReminder: (reminderId: Int) -> Unit,
 ) {
     val navigationState = rememberNavigationState()
     val bottomNavigationBarItems = listOf(
@@ -40,11 +42,12 @@ fun BottomNavigationScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         val navBackStackEntry by navigationState.navHostController.currentBackStackEntryAsState()
-        val selectedItemId = bottomNavigationBarItems.indexOf(bottomNavigationBarItems.find{ item ->
-            navBackStackEntry?.destination?.hierarchy?.any {
-                it.route == item.screen.route
-            } ?: false
-        })
+        val selectedItemId =
+            bottomNavigationBarItems.indexOf(bottomNavigationBarItems.find { item ->
+                navBackStackEntry?.destination?.hierarchy?.any {
+                    it.route == item.screen.route
+                } ?: false
+            })
         Box(modifier = Modifier.weight(1f)) {
             BottomNavigationNavGraph(
                 navHostController = navigationState.navHostController,
@@ -54,7 +57,12 @@ fun BottomNavigationScreen(
                         navigateWhenNoteClicked = navigateToNote
                     )
                 },
-                remindersListScreenContent = {},
+                remindersListScreenContent = {
+                    RemindersListScreen(
+                        mainAppViewModel = mainAppViewModel,
+                        navigateWhenReminderClicked = navigateToReminder
+                    )
+                },
                 tasksListScreenContent = {}
             )
         }

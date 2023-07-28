@@ -4,9 +4,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.example.jetpacknotes.db.Note
 import com.example.jetpacknotes.notes.NoteState
+import java.util.Calendar
 
-class NoteEditScreenViewModel: ViewModel() {
+class NoteEditScreenViewModel(private val mainAppViewModel: MainAppViewModel): ViewModel() {
     private var noteStates = arrayListOf<NoteState>()
     private var stateIndex = -1
     private val _currentNoteState = MutableLiveData<NoteState>()
@@ -51,4 +53,15 @@ class NoteEditScreenViewModel: ViewModel() {
     }
 
     private fun getState() = noteStates[noteStates.size + stateIndex]
+
+    fun createNote(function: (Note) -> Unit) {
+        val idsList = (mainAppViewModel.allNotes.value ?: emptyList()).map { it.id }
+        var noteId = 0
+        while (true) {
+            if (noteId !in idsList) break
+            noteId++
+        }
+        val note = Note(noteId, "", "", Calendar.getInstance().timeInMillis, "", 0)
+        function(note)
+    }
 }

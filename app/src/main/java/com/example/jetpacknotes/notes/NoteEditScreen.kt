@@ -1,9 +1,7 @@
 package com.example.jetpacknotes.notes
 
 import android.annotation.SuppressLint
-import android.content.Intent.ShortcutIconResource
 import android.view.MotionEvent
-import android.view.PointerIcon
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
@@ -11,9 +9,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.indication
-import androidx.compose.foundation.interaction.InteractionSource
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,7 +28,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
@@ -60,9 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.window.Dialog
@@ -73,6 +65,7 @@ import com.example.jetpacknotes.db.Category
 import com.example.jetpacknotes.db.Note
 import com.example.jetpacknotes.viewModels.MainAppViewModel
 import com.example.jetpacknotes.viewModels.NoteEditScreenViewModel
+import com.example.jetpacknotes.viewModels.NoteEditScreenViewModelFactory
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.ArrayList
@@ -82,10 +75,12 @@ import java.util.Calendar
 @Composable
 fun NoteEditScreen(
     mainAppViewModel: MainAppViewModel,
-    noteId: Int,
+    noteId: Int?,
     onBackPressed: () -> Unit
 ) {
-    val viewModel: NoteEditScreenViewModel = viewModel()
+    val viewModel: NoteEditScreenViewModel = viewModel(
+        factory = NoteEditScreenViewModelFactory(mainAppViewModel)
+    )
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -107,17 +102,32 @@ fun NoteEditScreen(
         val allCategories = mainAppViewModel.categoryOfNotes.observeAsState(emptyList())
         if (note == null) {
             scope.launch {
-                mainAppViewModel.getNoteById(noteId) {
-                    note = it
-                    viewModel.addNoteState(
-                        NoteState(
-                            title = TextFieldValue(it?.title ?: ""),
-                            text = TextFieldValue(it?.text ?: ""),
-                            colorIndex = it?.colorIndex ?: 0,
-                            categories = it?.categories ?: ""
+                if (noteId==null) {
+                    viewModel.createNote {
+                        note = it
+                        viewModel.addNoteState(
+                            NoteState(
+                                title = TextFieldValue(it.title),
+                                text = TextFieldValue(it.text),
+                                colorIndex = it.colorIndex,
+                                categories = it.categories
+                            )
                         )
-                    )
+                    }
+                } else {
+                    mainAppViewModel.getNoteById(noteId) {
+                        note = it
+                        viewModel.addNoteState(
+                            NoteState(
+                                title = TextFieldValue(it?.title ?: ""),
+                                text = TextFieldValue(it?.text ?: ""),
+                                colorIndex = it?.colorIndex ?: 0,
+                                categories = it?.categories ?: ""
+                            )
+                        )
+                    }
                 }
+
             }
         }
         CategoryDialog(

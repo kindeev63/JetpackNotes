@@ -1,5 +1,6 @@
 package com.example.jetpacknotes.navigation
 
+import android.os.Bundle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -19,8 +20,14 @@ class NavigationState(
         }
     }
 
-    fun navigateToNoteEdit(noteId: Int) {
+    fun navigateToNoteEdit(noteId: Int?) {
         navHostController.navigate(Screen.NoteEdit.getRouteWithArgs(noteId)) {
+            launchSingleTop = true
+        }
+    }
+
+    fun navigateToReminderEdit(reminderId: Int?) {
+        navHostController.navigate(Screen.ReminderEdit.getRouteWithArgs(reminderId)) {
             launchSingleTop = true
         }
     }

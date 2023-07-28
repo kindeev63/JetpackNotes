@@ -2,7 +2,6 @@ package com.example.jetpacknotes.notes
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -66,6 +65,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.window.Dialog
 import com.example.jetpacknotes.Colors
+import com.example.jetpacknotes.myItems.CategoryItem
+import com.example.jetpacknotes.myItems.NoteItem
+import com.example.jetpacknotes.myItems.SearchItem
 import kotlinx.coroutines.CoroutineScope
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -75,7 +77,7 @@ import java.util.Locale
 @Composable
 fun NotesListScreen(
     mainAppViewModel: MainAppViewModel,
-    navigateWhenNoteClicked: (Int) -> Unit
+    navigateWhenNoteClicked: (Int?) -> Unit
 ) {
     val viewModel: NotesListScreenViewModel = viewModel(
         factory = NotesListScreenViewModelFactory(mainAppViewModel)
@@ -91,7 +93,7 @@ fun NotesListScreen(
     val categoryState = rememberSaveable {
         mutableStateOf<Category?>(null)
     }
-    categoryState.value?.let {category ->
+    categoryState.value?.let { category ->
         if (category !in categoriesList.value) {
             if (category.id in categoriesList.value.map { it.id }) {
                 categoryState.value = categoriesList.value.find { it.id == category.id }
@@ -118,9 +120,9 @@ fun NotesListScreen(
         )
         Scaffold(
             floatingActionButton = {
-                FloatingActionButton(onClick = { viewModel.createNote {note ->
-                    navigateWhenNoteClicked(note.id)
-                } }) {
+                FloatingActionButton(onClick = {
+                    navigateWhenNoteClicked(null)
+                }) {
                     Icon(Icons.Filled.Add, contentDescription = null)
                 }
             }
@@ -322,52 +324,6 @@ private fun NotesListAppBar(
 }
 
 @Composable
-private fun SearchItem(
-    modifier: Modifier = Modifier,
-    searchText: MutableState<String?>,
-) {
-    if (searchText.value == null) {
-        IconButton(
-            onClick = {
-                searchText.value = ""
-            }
-        ) {
-            Icon(Icons.Filled.Search, contentDescription = null)
-        }
-    } else {
-        Row(
-            modifier = modifier,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PlaceholderTextField(
-                boxModifier = Modifier.weight(1f),
-                textModifier = Modifier.fillMaxWidth(),
-                value = searchText.value ?: "",
-                onValueChange = {
-                    searchText.value = it
-                },
-                singleLine = true,
-                textStyle = TextStyle.Default.copy(fontSize = 18.sp),
-                hintText = "Введите текст..."
-            )
-            IconButton(
-                modifier = Modifier.alpha(0.5f),
-                onClick = {
-                    if (searchText.value == "") {
-                        searchText.value = null
-                    } else {
-                        searchText.value = ""
-                    }
-
-                }
-            ) {
-                Icon(Icons.Default.Close, contentDescription = null)
-            }
-        }
-    }
-}
-
-@Composable
 fun PlaceholderTextField(
     value: String,
     onValueChange: (String) -> Unit,
@@ -377,8 +333,10 @@ fun PlaceholderTextField(
     boxModifier: Modifier = Modifier,
     textModifier: Modifier = Modifier,
 ) {
-    Box(modifier = boxModifier,
-    contentAlignment = Alignment.CenterStart) {
+    Box(
+        modifier = boxModifier,
+        contentAlignment = Alignment.CenterStart
+    ) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,

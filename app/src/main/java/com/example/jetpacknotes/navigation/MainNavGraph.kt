@@ -1,5 +1,6 @@
 package com.example.jetpacknotes.navigation
 
+import android.os.Bundle
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -11,7 +12,8 @@ import androidx.navigation.navArgument
 fun MainNavGraph(
     navHostController: NavHostController,
     bottomNavigationScreen: @Composable () -> Unit,
-    noteEditScreenContent: @Composable (Int) -> Unit,
+    noteEditScreenContent: @Composable (Int?) -> Unit,
+    reminderEditScreenContent: @Composable (Int?) -> Unit,
 ) {
     NavHost(
         navController = navHostController,
@@ -22,14 +24,15 @@ fun MainNavGraph(
         }
         composable(
             route = Screen.NoteEdit.route,
-            arguments = listOf(
-                navArgument("noteId") {
-                    type = NavType.IntType
-                }
-            )
         ) {
-            val noteId = it.arguments?.getInt("noteId") ?: 0
+            val noteId = it.arguments?.get("bundle").toString().toIntOrNull()
             noteEditScreenContent(noteId)
+        }
+        composable(
+            route = Screen.ReminderEdit.route,
+        ) {
+            val reminderId = it.arguments?.get("reminderId").toString().toIntOrNull()
+            reminderEditScreenContent(reminderId)
         }
     }
 }

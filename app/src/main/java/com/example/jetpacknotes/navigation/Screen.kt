@@ -1,5 +1,7 @@
 package com.example.jetpacknotes.navigation
 
+import android.os.Bundle
+
 sealed class Screen(
     val route: String
 ) {
@@ -8,15 +10,20 @@ sealed class Screen(
     object NotesList: Screen(ROUTE_NOTES_LIST)
     object NoteEdit: Screen(ROUTE_NOTE_EDIT) {
         private const val ROUTE_FOR_ARGS = "note_edit"
-        fun getRouteWithArgs(noteId: Int) = "$ROUTE_FOR_ARGS/$noteId"
+        fun getRouteWithArgs(noteId: Int?) = "$ROUTE_FOR_ARGS/$noteId"
     }
     object RemindersList: Screen(ROUTE_REMINDERS_LIST)
+    object ReminderEdit: Screen(ROUTE_REMINDER_EDIT) {
+        private const val ROUTE_FOR_ARGS = "reminder_edit"
+        fun getRouteWithArgs(reminderId: Int?) = "$ROUTE_FOR_ARGS/$reminderId"
+    }
     object TasksList: Screen(ROUTE_TASKS_LIST)
 
     private companion object {
         const val ROUTE_BOTTOM_NAVIGATION = "bottom_navigation"
         const val ROUTE_NOTES_LIST = "notes_list"
-        const val ROUTE_NOTE_EDIT = "note_edit/{noteId}"
+        const val ROUTE_NOTE_EDIT = "note_edit/{bundle}"
+        const val ROUTE_REMINDER_EDIT = "reminder_edit/{bundle}"
         const val ROUTE_REMINDERS_LIST = "reminders_list"
         const val ROUTE_TASKS_LIST = "tasks_list"
     }
