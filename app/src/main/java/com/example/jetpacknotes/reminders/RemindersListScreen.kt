@@ -5,9 +5,11 @@ import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -45,8 +47,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RemindersListScreen(
-    mainAppViewModel: MainAppViewModel,
-    navigateWhenReminderClicked: (Int) -> Unit
+    mainAppViewModel: MainAppViewModel
 ) {
     val viewModel: RemindersListScreenViewModel = viewModel(
         factory = RemindersListScreenViewModelFactory(mainAppViewModel)
@@ -57,11 +58,19 @@ fun RemindersListScreen(
     val searchText = rememberSaveable {
         mutableStateOf<String?>(null)
     }
+    val openReminderDialog = rememberSaveable {
+        mutableStateOf<ReminderForDialog?>(null)
+    }
+    openReminderDialog.value?.let {
+        ReminderEditDialog(
+            reminderState = openReminderDialog,
+            mainAppViewModel = mainAppViewModel
+        )
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        val packageName = LocalContext.current.packageName
         RemindersListAppBar(
             title = "Reminders",
             viewModel = viewModel,
@@ -70,9 +79,7 @@ fun RemindersListScreen(
         Scaffold(
             floatingActionButton = {
                 FloatingActionButton(onClick = {
-                    viewModel.createReminder(packageName) { reminder ->
-                        navigateWhenReminderClicked(reminder.id)
-                    }
+                    openReminderDialog.value = ReminderForDialog(null)
                 }) {
                     Icon(Icons.Filled.Add, contentDescription = null)
                 }
@@ -91,7 +98,7 @@ fun RemindersListScreen(
                         if (selectedReminders.value.isNotEmpty()) {
                             viewModel.changeSelectionStateOf(reminder)
                         } else {
-                            navigateWhenReminderClicked(reminder.id)
+                            openReminderDialog.value = ReminderForDialog(reminder)
                         }
                     }
                 },
@@ -114,6 +121,7 @@ private fun RemindersListAppBar(
             .height(56.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Spacer(modifier = Modifier.width(20.dp))
         if (searchText.value == null) {
             Text(
                 text = title,

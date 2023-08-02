@@ -25,12 +25,6 @@ class NavigationState(
             launchSingleTop = true
         }
     }
-
-    fun navigateToReminderEdit(reminderId: Int?) {
-        navHostController.navigate(Screen.ReminderEdit.getRouteWithArgs(reminderId)) {
-            launchSingleTop = true
-        }
-    }
 }
 
 @Composable

@@ -21,11 +21,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
@@ -60,7 +58,6 @@ import com.example.jetpacknotes.viewModels.NotesListScreenViewModel
 import com.example.jetpacknotes.viewModels.NotesListScreenViewModelFactory
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.window.Dialog
@@ -102,11 +99,11 @@ fun NotesListScreen(
             }
         }
     }
-    val openDialog = rememberSaveable {
+    val openCategoryDialog = rememberSaveable {
         mutableStateOf<Category?>(null)
     }
     val scope = rememberCoroutineScope()
-    CategoryDialog(openDialog = openDialog, viewModel = viewModel)
+    CategoryDialog(openCategoryDialog = openCategoryDialog, viewModel = viewModel)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -136,7 +133,7 @@ fun NotesListScreen(
                         DrawerHeader(
                             onClickAdd = {
                                 val category = viewModel.createCategory()
-                                openDialog.value = category
+                                openCategoryDialog.value = category
                             }
                         )
                         Spacer(modifier = Modifier.height(10.dp))
@@ -157,7 +154,7 @@ fun NotesListScreen(
                         CategoriesList(
                             categoriesList = categoriesList.value,
                             onClick = { category, long ->
-                                viewModel.clickOnCategory(category, long, categoryState, openDialog)
+                                viewModel.clickOnCategory(category, long, categoryState, openCategoryDialog)
                                 if (!long) {
                                     scope.launch {
                                         drawerState.close()
@@ -357,13 +354,13 @@ fun PlaceholderTextField(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CategoryDialog(
-    openDialog: MutableState<Category?>,
+    openCategoryDialog: MutableState<Category?>,
     viewModel: NotesListScreenViewModel
 ) {
-    val category = openDialog.value
+    val category = openCategoryDialog.value
     if (category != null) {
         Dialog(onDismissRequest = {
-            openDialog.value = null
+            openCategoryDialog.value = null
         }) {
             Box(
                 modifier = Modifier
@@ -422,7 +419,7 @@ private fun CategoryDialog(
                         if (category.name != "") {
                             IconButton(onClick = {
                                 viewModel.deleteCategory(category)
-                                openDialog.value = null
+                                openCategoryDialog.value = null
                             }) {
                                 Icon(Icons.Filled.Delete, contentDescription = null)
                             }
@@ -432,13 +429,13 @@ private fun CategoryDialog(
                     Row(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        TextButton(onClick = { openDialog.value = null }) {
+                        TextButton(onClick = { openCategoryDialog.value = null }) {
                             Text(text = "cancel")
                         }
                         TextButton(onClick = {
                             if (categoryName.value != "") {
                                 viewModel.insertCategory(category.copy(name = categoryName.value))
-                                openDialog.value = null
+                                openCategoryDialog.value = null
                             }
                         }) {
                             Text(text = "save")

@@ -18,17 +18,6 @@ class RemindersListScreenViewModel(private val mainAppViewModel: MainAppViewMode
         _selectedReminders.value = emptyList()
     }
 
-    fun createReminder(packageName: String, function: (Reminder) -> Unit) {
-        val idsList = (mainAppViewModel.allReminders.value ?: emptyList()).map { it.id }
-        var reminderId = 0
-        while (true) {
-            if (reminderId !in idsList) break
-            reminderId++
-        }
-        val reminder = Reminder(reminderId, "", "", Calendar.getInstance().timeInMillis, null, packageName, true, ReminderAction.OpenApp)
-        mainAppViewModel.insertReminder(reminder, function)
-    }
-
     fun filterReminders(reminders: List<Reminder>, searchText: String?): List<Reminder> {
         return reminders.filter { reminder -> reminder.title.lowercase().contains(searchText?.lowercase() ?: "")}
     }

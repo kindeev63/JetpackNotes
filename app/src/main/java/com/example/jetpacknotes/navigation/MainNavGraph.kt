@@ -13,7 +13,6 @@ fun MainNavGraph(
     navHostController: NavHostController,
     bottomNavigationScreen: @Composable () -> Unit,
     noteEditScreenContent: @Composable (Int?) -> Unit,
-    reminderEditScreenContent: @Composable (Int?) -> Unit,
 ) {
     NavHost(
         navController = navHostController,
@@ -27,12 +26,6 @@ fun MainNavGraph(
         ) {
             val noteId = it.arguments?.get("bundle").toString().toIntOrNull()
             noteEditScreenContent(noteId)
-        }
-        composable(
-            route = Screen.ReminderEdit.route,
-        ) {
-            val reminderId = it.arguments?.get("reminderId").toString().toIntOrNull()
-            reminderEditScreenContent(reminderId)
         }
     }
 }

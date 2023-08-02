@@ -1,6 +1,7 @@
 package com.example.jetpacknotes.viewModels
 
 import android.app.Application
+import android.app.FragmentManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.viewModelScope
@@ -17,7 +18,6 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     val allNotes: LiveData<List<Note>>
     val allReminders: LiveData<List<Reminder>>
     val categoryOfNotes: LiveData<List<Category>>
-
     init {
         appDao = AppDataBase.getDataBase(application).getDao()
         allNotes = appDao.getAllNotes()

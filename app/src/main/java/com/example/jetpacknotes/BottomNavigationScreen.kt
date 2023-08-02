@@ -30,7 +30,6 @@ import com.example.jetpacknotes.viewModels.MainAppViewModel
 fun BottomNavigationScreen(
     mainAppViewModel: MainAppViewModel,
     navigateToNote: (noteId: Int?) -> Unit,
-    navigateToReminder: (reminderId: Int) -> Unit,
 ) {
     val navigationState = rememberNavigationState()
     val bottomNavigationBarItems = listOf(
@@ -59,8 +58,7 @@ fun BottomNavigationScreen(
                 },
                 remindersListScreenContent = {
                     RemindersListScreen(
-                        mainAppViewModel = mainAppViewModel,
-                        navigateWhenReminderClicked = navigateToReminder
+                        mainAppViewModel = mainAppViewModel
                     )
                 },
                 tasksListScreenContent = {}
