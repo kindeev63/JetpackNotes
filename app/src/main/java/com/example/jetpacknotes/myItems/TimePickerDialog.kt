@@ -1,5 +1,6 @@
 package com.example.jetpacknotes.myItems
 
+import android.content.res.Configuration
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
@@ -15,8 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.rounded.KeyboardArrowRight
@@ -37,7 +40,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -54,30 +56,36 @@ fun TimePickerDialog(
     colors: TimePickerDialogColors = TimePickerDialogDefaults.colors,
     onPick: (hour: Int, minute: Int) -> Unit
 ) {
-        val time = rememberSaveable {
-            mutableStateOf(TimeForDialog(hour, minute))
-        }
-        Dialog(onDismissRequest = onCloseDialog) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(colors.backgroundColor)
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                val selected = rememberSaveable {
-                    mutableStateOf(0)
-                }
-                TimeText(selected = selected, time = time, colors = colors)
-                Spacer(modifier = Modifier.height(5.dp))
-                NumberButtons(colors = colors, selected = selected, time = time)
-                Spacer(modifier = Modifier.height(5.dp))
-                ActionButtons(time = time, colors = colors, onCloseDialog = onCloseDialog, onPick = onPick)
+    val time = rememberSaveable {
+        mutableStateOf(TimeForDialog(hour, minute))
+    }
+    Dialog(onDismissRequest = onCloseDialog) {
+        val scrollState = rememberScrollState()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .clip(RoundedCornerShape(20.dp))
+                .background(colors.backgroundColor)
+                .verticalScroll(scrollState)
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            val selected = rememberSaveable {
+                mutableStateOf(0)
             }
-
+            TimeText(selected = selected, time = time, colors = colors)
+            Spacer(modifier = Modifier.height(5.dp))
+            NumberButtons(colors = colors, selected = selected, time = time)
+            Spacer(modifier = Modifier.height(5.dp))
+            ActionButtons(
+                time = time,
+                colors = colors,
+                onCloseDialog = onCloseDialog,
+                onPick = onPick
+            )
         }
+    }
 }
 
 @Composable
@@ -153,8 +161,12 @@ private fun numberButtonClicked(
 }
 
 @Composable
-private fun NumberButtons(colors: TimePickerDialogColors, selected: MutableState<Int>, time: MutableState<TimeForDialog>) {
-    val screenWidth = LocalConfiguration.current.screenWidthDp
+private fun NumberButtons(
+    colors: TimePickerDialogColors,
+    selected: MutableState<Int>,
+    time: MutableState<TimeForDialog>
+) {
+    val screenWidth = if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -222,7 +234,7 @@ private fun NumberButtons(colors: TimePickerDialogColors, selected: MutableState
 
 @Composable
 private fun NumberButton(text: String, colors: TimePickerDialogColors, onClick: () -> Unit) {
-    val screenWidth = LocalConfiguration.current.screenWidthDp
+    val screenWidth = if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp
     Button(
         modifier = Modifier
             .size((screenWidth / 4).dp - 4.dp),
@@ -242,7 +254,7 @@ private fun NumberButton(text: String, colors: TimePickerDialogColors, onClick: 
 
 @Composable
 private fun ArrowButton(icon: ImageVector, colors: TimePickerDialogColors, onClick: () -> Unit) {
-    val screenWidth = LocalConfiguration.current.screenWidthDp
+    val screenWidth = if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp
     Button(
         modifier = Modifier
             .size((screenWidth / 4).dp - 4.dp),
@@ -291,7 +303,7 @@ private fun TimeText(
     time: MutableState<TimeForDialog>,
     colors: TimePickerDialogColors
 ) {
-    val screenWidth = LocalConfiguration.current.screenWidthDp
+    val screenWidth = if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp
     val fontSize = screenWidth / 10
     Box(
         modifier = Modifier
@@ -437,13 +449,13 @@ private fun PreviewTimePicker() {
     if (show.value) {
         TimePickerDialog(
             time = Calendar.getInstance().timeInMillis,
-        onCloseDialog = {
-            show.value = false
-        },
-        onPick = {_, _ ->
+            onCloseDialog = {
+                show.value = false
+            },
+            onPick = { _, _ ->
 
-        }
-            )
+            }
+        )
     }
 
 }
