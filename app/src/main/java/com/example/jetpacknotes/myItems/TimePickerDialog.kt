@@ -48,18 +48,16 @@ import java.util.Calendar
 
 @Composable
 fun TimePickerDialog(
-    show: MutableState<Boolean>,
     hour: Int,
     minute: Int,
+    onCloseDialog: () -> Unit,
     colors: TimePickerDialogColors = TimePickerDialogDefaults.colors,
     onPick: (hour: Int, minute: Int) -> Unit
 ) {
-    if (show.value) {
-
         val time = rememberSaveable {
             mutableStateOf(TimeForDialog(hour, minute))
         }
-        Dialog(onDismissRequest = { show.value = false }) {
+        Dialog(onDismissRequest = onCloseDialog) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -76,29 +74,27 @@ fun TimePickerDialog(
                 Spacer(modifier = Modifier.height(5.dp))
                 NumberButtons(colors = colors, selected = selected, time = time)
                 Spacer(modifier = Modifier.height(5.dp))
-                ActionButtons(show = show, time = time, colors = colors, onPick = onPick)
+                ActionButtons(time = time, colors = colors, onCloseDialog = onCloseDialog, onPick = onPick)
             }
 
         }
-    }
-
 }
 
 @Composable
 fun TimePickerDialog(
-    show: MutableState<Boolean>,
     time: Long,
     colors: TimePickerDialogColors = TimePickerDialogDefaults.colors,
+    onCloseDialog: () -> Unit,
     onPick: (hour: Int, minute: Int) -> Unit
 ) {
     val calendar = Calendar.getInstance().apply {
         timeInMillis = time
     }
     TimePickerDialog(
-        show = show,
         hour = calendar[Calendar.HOUR_OF_DAY],
         minute = calendar[Calendar.MINUTE],
         colors = colors,
+        onCloseDialog = onCloseDialog,
         onPick = onPick
     )
 }
@@ -262,16 +258,16 @@ private fun ArrowButton(icon: ImageVector, colors: TimePickerDialogColors, onCli
 
 @Composable
 private fun ActionButtons(
-    show: MutableState<Boolean>,
     time: MutableState<TimeForDialog>,
     colors: TimePickerDialogColors,
+    onCloseDialog: () -> Unit,
     onPick: (hour: Int, minute: Int) -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        TextButton(onClick = { show.value = false }) {
+        TextButton(onClick = onCloseDialog) {
             Text(
                 text = "cancel",
                 color = colors.actionButtonTextColor
@@ -279,7 +275,7 @@ private fun ActionButtons(
         }
         TextButton(onClick = {
             onPick(time.value.hour, time.value.minute)
-            show.value = false
+            onCloseDialog()
         }) {
             Text(
                 text = "save",
@@ -438,7 +434,16 @@ private fun PreviewTimePicker() {
     val show = remember {
         mutableStateOf(true)
     }
-    TimePickerDialog(show = show, time = Calendar.getInstance().timeInMillis) { _, _ ->
+    if (show.value) {
+        TimePickerDialog(
+            time = Calendar.getInstance().timeInMillis,
+        onCloseDialog = {
+            show.value = false
+        },
+        onPick = {_, _ ->
 
+        }
+            )
     }
+
 }

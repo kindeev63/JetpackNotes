@@ -49,7 +49,12 @@ fun ReminderEditDialog(
 ) {
     val packageName = LocalContext.current.packageName
     val reminder = rememberSaveable {
-        mutableStateOf(reminderState.value?.reminder ?: createReminder(mainAppViewModel, packageName))
+        mutableStateOf(
+            reminderState.value?.reminder ?: createReminder(
+                mainAppViewModel,
+                packageName
+            )
+        )
     }
     Dialog(onDismissRequest = { reminderState.value = null }) {
         Box(
@@ -102,14 +107,23 @@ private fun TimeRow(reminder: MutableState<Reminder>) {
         val showTimePickerDialog = rememberSaveable {
             mutableStateOf(false)
         }
-        TimePickerDialog(show = showTimePickerDialog, time = reminder.value.time) {hour, minute ->
-            val time = Calendar.getInstance().apply {
-                timeInMillis = reminder.value.time
-            }
-            time[Calendar.HOUR_OF_DAY] = hour
-            time[Calendar.MINUTE] = minute
-            reminder.value = reminder.value.copy(time = time.timeInMillis)
+        if (showTimePickerDialog.value) {
+            TimePickerDialog(
+                time = reminder.value.time,
+                onCloseDialog = {
+                    showTimePickerDialog.value = false
+                },
+                onPick = { hour, minute ->
+                    val time = Calendar.getInstance().apply {
+                        timeInMillis = reminder.value.time
+                    }
+                    time[Calendar.HOUR_OF_DAY] = hour
+                    time[Calendar.MINUTE] = minute
+                    reminder.value = reminder.value.copy(time = time.timeInMillis)
+                }
+            )
         }
+
         Text(
             modifier = Modifier.clickable {
                 showTimePickerDialog.value = true
@@ -119,7 +133,9 @@ private fun TimeRow(reminder: MutableState<Reminder>) {
         )
 
         Spacer(modifier = Modifier.width(5.dp))
-        IconButton(onClick = { reminder.value = reminder.value.copy(sound = !reminder.value.sound) }) {
+        IconButton(onClick = {
+            reminder.value = reminder.value.copy(sound = !reminder.value.sound)
+        }) {
             Icon(
                 painter = painterResource(id = if (reminder.value.sound) R.drawable.ic_sound_on else R.drawable.ic_sound_off),
                 contentDescription = null
