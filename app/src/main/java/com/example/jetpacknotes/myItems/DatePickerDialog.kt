@@ -58,8 +58,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
@@ -121,7 +122,6 @@ fun DatePickerDialog(
         ) {
             DialogHeader(date = date)
             DialogMonthAndYearChanger(
-                date = date,
                 pickYear = pickYear,
                 scrollState = calendarScrollState,
                 monthList = monthList
@@ -130,7 +130,7 @@ fun DatePickerDialog(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(screenWidthDp.dp - 20.dp)
+                    .height(screenWidthDp.dp - 60.dp)
             ) {
                 DialogCalendar(
                     pickYear = pickYear,
@@ -176,7 +176,6 @@ private fun YearPicking(
                     .weight(1f)
             ) {
                 PickYear(
-                    date = date,
                     colors = colors,
                     pickYear = pickYear,
                     scrollState = scrollState,
@@ -242,7 +241,10 @@ private fun DialogCalendar(
                             .fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = it)
+                        Text(
+                            text = it,
+                            fontSize = smallFontSize()
+                        )
                     }
                 }
             }
@@ -306,6 +308,17 @@ private fun checkCalendarNow(
 
 private data class CalendarItemData(val year: Int, val month: Int) : Serializable
 
+@Composable
+private fun smallFontSize(): TextUnit {
+    val screenWidthDp = getScreenWidthDp()
+    return (screenWidthDp/20).sp
+}
+
+@Composable
+private fun largeFontSize(): TextUnit {
+    val screenWidthDp = getScreenWidthDp()
+    return (screenWidthDp/10).sp
+}
 @Composable
 private fun CalendarItem(
     data: CalendarItemData,
@@ -432,14 +445,14 @@ private fun DialogHeader(date: MutableState<DateForDialog>) {
     val localDateTime = LocalDateTime.of(date.value.year, date.value.month, date.value.day, 0, 0)
     Text(
         modifier = Modifier.padding(5.dp),
-        text = dateFormatter.format(localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli())
+        text = dateFormatter.format(localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()),
+        fontSize = largeFontSize()
     )
 }
 
 
 @Composable
 private fun DialogMonthAndYearChanger(
-    date: MutableState<DateForDialog>,
     pickYear: MutableState<Boolean>,
     scrollState: LazyListState,
     monthList: List<CalendarItemData>
@@ -466,7 +479,8 @@ private fun DialogMonthAndYearChanger(
             Text(
                 text = dateFormatter.format(
                     localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()
-                )
+                ),
+                fontSize = smallFontSize()
             )
             Icon(
                 modifier = Modifier
@@ -508,7 +522,6 @@ private fun DialogMonthAndYearChanger(
 @SuppressLint("CoroutineCreationDuringComposition")
 @Composable
 private fun PickYear(
-    date: MutableState<DateForDialog>,
     colors: DatePickerDialogColors,
     pickYear: MutableState<Boolean>,
     scrollState: LazyListState,
@@ -576,7 +589,8 @@ private fun DateButton(
     ) {
         Text(
             text = text,
-            color = data.textColor
+            color = data.textColor,
+            fontSize = smallFontSize()
         )
     }
 }
