@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -517,10 +518,14 @@ private fun PickYear(
     val minYear = (yearNow / 100).toInt() * 100 - 100
     val state = rememberLazyGridState()
     val scope = rememberCoroutineScope()
-    scope.launch {
-        state.scrollToItem(date.value.year - minYear)
+    val currentMouthIndex by remember {
+        derivedStateOf {
+            scrollState.firstVisibleItemIndex
+        }
     }
-
+    scope.launch {
+        state.scrollToItem(monthList[currentMouthIndex].year - minYear)
+    }
     val years = arrayListOf<Int>().apply {
         repeat(200) {
             add(minYear + it)
@@ -530,21 +535,22 @@ private fun PickYear(
         columns = GridCells.Fixed(3),
         state = state
     ) {
-        years.forEach { year ->
-            item {
-                val data = when (year) {
-                    monthList[scrollState.firstVisibleItemIndex].year -> DateButtonData.Selected
-                    yearNow -> DateButtonData.Now
-                    else -> DateButtonData.Unselected
-                }
-                DateButton(text = year.toString(), data = data) {
-                    if (year != date.value.year) {
-                        val currentItem = monthList[scrollState.firstVisibleItemIndex]
-                        scope.launch {
-                            scrollState.animateScrollToItem(monthList.indexOf(currentItem.copy(year = year)))
-                        }
-                        pickYear.value = false
+        items(
+            items = years,
+            key = {it}
+        ) { year ->
+            val data = when (year) {
+                monthList[currentMouthIndex].year -> DateButtonData.Selected
+                yearNow -> DateButtonData.Now
+                else -> DateButtonData.Unselected
+            }
+            DateButton(text = year.toString(), data = data) {
+                if (year != monthList[currentMouthIndex].year) {
+                    val currentItem = monthList[currentMouthIndex]
+                    scope.launch {
+                        scrollState.scrollToItem(monthList.indexOf(currentItem.copy(year = year)))
                     }
+                    pickYear.value = false
                 }
             }
         }
