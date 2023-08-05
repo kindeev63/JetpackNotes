@@ -39,7 +39,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.sp
 import com.example.jetpacknotes.R
+import com.example.jetpacknotes.myItems.DatePickerDialog
 import com.example.jetpacknotes.myItems.TimePickerDialog
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 
 @Composable
@@ -96,6 +99,7 @@ fun ReminderEditDialog(
 @Composable
 private fun DialogContent(reminder: MutableState<Reminder>) {
     TimeRow(reminder = reminder)
+    DateRow(reminder = reminder)
 }
 
 @Composable
@@ -145,8 +149,35 @@ private fun TimeRow(reminder: MutableState<Reminder>) {
 }
 
 @Composable
-private fun DateRow() {
+private fun DateRow(reminder: MutableState<Reminder>) {
+    val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val showDatePickerDialog = rememberSaveable {
+            mutableStateOf(false)
+        }
+        if (showDatePickerDialog.value) {
+            DatePickerDialog(
+                time = reminder.value.time,
+                onCloseDialog = {
+                    showDatePickerDialog.value = false
+                },
+                onPick = { year, month, day ->
+                    val localDateTime = LocalDateTime.of(year, month, day, 0, 0)
+                    reminder.value = reminder.value.copy(time = localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli())
+                }
+            )
+        }
 
+        Text(
+            modifier = Modifier.clickable {
+                showDatePickerDialog.value = true
+            },
+            text = dateFormatter.format(reminder.value.time),
+            fontSize = ((if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp) * 0.07).sp
+        )
+    }
 }
 
 @Composable
@@ -185,7 +216,7 @@ private fun createReminder(mainAppViewModel: MainAppViewModel, packageName: Stri
         reminderId,
         "",
         "",
-        Calendar.getInstance().timeInMillis,
+        LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli(),
         null,
         packageName,
         true,
