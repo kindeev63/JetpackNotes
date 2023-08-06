@@ -1,6 +1,7 @@
 package com.example.jetpacknotes.reminders
 
 import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +34,6 @@ import com.example.jetpacknotes.db.Reminder
 import com.example.jetpacknotes.db.ReminderAction
 import com.example.jetpacknotes.viewModels.MainAppViewModel
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Locale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
@@ -41,8 +41,12 @@ import androidx.compose.ui.unit.sp
 import com.example.jetpacknotes.R
 import com.example.jetpacknotes.myItems.DatePickerDialog
 import com.example.jetpacknotes.myItems.TimePickerDialog
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
 import java.time.ZoneOffset
+import java.time.temporal.TemporalField
 
 
 @Composable
@@ -118,12 +122,12 @@ private fun TimeRow(reminder: MutableState<Reminder>) {
                     showTimePickerDialog.value = false
                 },
                 onPick = { hour, minute ->
-                    val time = Calendar.getInstance().apply {
-                        timeInMillis = reminder.value.time
-                    }
-                    time[Calendar.HOUR_OF_DAY] = hour
-                    time[Calendar.MINUTE] = minute
-                    reminder.value = reminder.value.copy(time = time.timeInMillis)
+                    Log.e("test", "$hour:$minute")
+                    val instant = Instant.ofEpochMilli(reminder.value.time)
+                    val reminderTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault()).atZone(
+                        ZoneId.systemDefault())
+                    val newTime = reminderTime.withHour(hour).withMinute(minute)
+                    reminder.value = reminder.value.copy(time = newTime.toInstant().toEpochMilli())
                 }
             )
         }
@@ -216,7 +220,7 @@ private fun createReminder(mainAppViewModel: MainAppViewModel, packageName: Stri
         reminderId,
         "",
         "",
-        LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli(),
+        LocalDateTime.now().atZone(ZoneId.systemDefault()).withSecond(0).toInstant().toEpochMilli(),
         null,
         packageName,
         true,

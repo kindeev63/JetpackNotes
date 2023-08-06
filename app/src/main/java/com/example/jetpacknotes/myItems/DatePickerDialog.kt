@@ -92,7 +92,8 @@ fun DatePickerDialog(
     onPick: (year: Int, month: Int, dat: Int) -> Unit
 ) {
     val instant = Instant.ofEpochMilli(time)
-    val localDateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault())
+    val localDateTime =
+        LocalDateTime.ofInstant(instant, ZoneId.systemDefault()).atZone(ZoneId.systemDefault())
     DatePickerDialog(
         year = localDateTime.year,
         month = localDateTime.month.value,
@@ -205,15 +206,21 @@ fun DatePickerDialog(
 }
 
 @Composable
-private fun DialogHeader(date: MutableState<DateForDialog>, colors: DatePickerDialogColors) {
+private fun DialogHeader(
+    date: MutableState<DateForDialog>,
+    colors: DatePickerDialogColors
+) {
     val dateFormatter = SimpleDateFormat("d MMM yyyy г.", Locale.getDefault())
     val symbols = dateFormatter.dateFormatSymbols
     symbols.months = symbols.months.map { it.capitalize() }.toTypedArray()
     dateFormatter.dateFormatSymbols = symbols
-    val localDateTime = LocalDateTime.of(date.value.year, date.value.month, date.value.day, 0, 0)
+    val localDateTime =
+        LocalDateTime.of(date.value.year, date.value.month, date.value.day, 0, 0).atZone(
+            ZoneId.systemDefault()
+        )
     Text(
         modifier = Modifier.padding(5.dp),
-        text = dateFormatter.format(localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()),
+        text = dateFormatter.format(localDateTime.toInstant().toEpochMilli()),
         fontSize = largeFontSize(),
         color = colors.dateTextColor
     )
@@ -244,10 +251,10 @@ private fun DialogMonthAndYearChanger(
                 1,
                 0,
                 0
-            )
+            ).atZone(ZoneId.systemDefault())
             Text(
                 text = dateFormatter.format(
-                    localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()
+                    localDateTime.toInstant().toEpochMilli()
                 ),
                 fontSize = smallFontSize(),
                 color = colors.pickYearTextColor
@@ -534,10 +541,10 @@ private fun CalendarItem(
 private fun ActionButtons(
     date: MutableState<DateForDialog>,
     colors: DatePickerDialogColors,
+    saveButtonText: String,
+    cancelButtonText: String,
     onCloseDialog: () -> Unit,
     onPick: (year: Int, month: Int, day: Int) -> Unit,
-    saveButtonText: String,
-    cancelButtonText: String
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),

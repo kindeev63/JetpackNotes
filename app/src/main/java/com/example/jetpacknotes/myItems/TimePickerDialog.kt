@@ -32,7 +32,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,19 +40,44 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import java.io.Serializable
-import java.util.Calendar
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+
+@Composable
+fun TimePickerDialog(
+    time: Long,
+    colors: TimePickerDialogColors = TimePickerDialogDefaults.colors,
+    saveButtonText: String = "save",
+    cancelButtonText: String = "cancel",
+    onCloseDialog: () -> Unit,
+    onPick: (hour: Int, minute: Int) -> Unit
+) {
+    val instant = Instant.ofEpochMilli(time)
+    val localDateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault()).atZone(ZoneId.systemDefault())
+    TimePickerDialog(
+        hour = localDateTime.hour,
+        minute = localDateTime.minute,
+        colors = colors,
+        saveButtonText = saveButtonText,
+        cancelButtonText = cancelButtonText,
+        onCloseDialog = onCloseDialog,
+        onPick = onPick
+    )
+}
 
 @Composable
 fun TimePickerDialog(
     hour: Int,
     minute: Int,
-    onCloseDialog: () -> Unit,
+    saveButtonText: String = "save",
+    cancelButtonText: String = "cancel",
     colors: TimePickerDialogColors = TimePickerDialogDefaults.colors,
+    onCloseDialog: () -> Unit,
     onPick: (hour: Int, minute: Int) -> Unit
 ) {
     val time = rememberSaveable {
@@ -82,82 +106,12 @@ fun TimePickerDialog(
                 time = time,
                 colors = colors,
                 onCloseDialog = onCloseDialog,
-                onPick = onPick
+                onPick = onPick,
+                saveButtonText = saveButtonText,
+                cancelButtonText = cancelButtonText
             )
         }
     }
-}
-
-@Composable
-fun TimePickerDialog(
-    time: Long,
-    colors: TimePickerDialogColors = TimePickerDialogDefaults.colors,
-    onCloseDialog: () -> Unit,
-    onPick: (hour: Int, minute: Int) -> Unit
-) {
-    val calendar = Calendar.getInstance().apply {
-        timeInMillis = time
-    }
-    TimePickerDialog(
-        hour = calendar[Calendar.HOUR_OF_DAY],
-        minute = calendar[Calendar.MINUTE],
-        colors = colors,
-        onCloseDialog = onCloseDialog,
-        onPick = onPick
-    )
-}
-
-private fun nextTime(selected: MutableState<Int>) {
-    if (selected.value < 3) selected.value++ else selected.value = 0
-}
-
-private fun previousTime(selected: MutableState<Int>) {
-    if (selected.value > 0) selected.value-- else selected.value = 3
-}
-
-private fun numberButtonClicked(
-    number: Int,
-    selected: MutableState<Int>,
-    time: MutableState<TimeForDialog>
-) {
-    var hour = time.value.hour
-    var minute = time.value.minute
-    var twiceMoves = false
-    when (selected.value) {
-        0 -> {
-            hour = if (number > 2) {
-                twiceMoves = true
-                number
-            } else {
-                hour % 10 + number * 10
-            }
-        }
-
-        1 -> {
-            hour = (hour / 10).toInt() * 10 + number
-        }
-
-        2 -> {
-            minute = if (number > 5) {
-                twiceMoves = true
-                number
-            } else {
-                minute % 10 + number * 10
-            }
-        }
-
-        3 -> {
-            minute = (minute / 10).toInt() * 10 + number
-        }
-    }
-    time.value = time.value.copy(hour = hour, minute = minute)
-    if (twiceMoves) {
-        selected.value = if (selected.value == 0) 2 else 0
-    } else {
-        nextTime(selected)
-    }
-
-
 }
 
 @Composable
@@ -166,7 +120,8 @@ private fun NumberButtons(
     selected: MutableState<Int>,
     time: MutableState<TimeForDialog>
 ) {
-    val screenWidth = if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp
+    val screenWidth =
+        if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -234,7 +189,8 @@ private fun NumberButtons(
 
 @Composable
 private fun NumberButton(text: String, colors: TimePickerDialogColors, onClick: () -> Unit) {
-    val screenWidth = if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp
+    val screenWidth =
+        if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp
     Button(
         modifier = Modifier
             .size((screenWidth / 4).dp - 4.dp),
@@ -254,7 +210,8 @@ private fun NumberButton(text: String, colors: TimePickerDialogColors, onClick: 
 
 @Composable
 private fun ArrowButton(icon: ImageVector, colors: TimePickerDialogColors, onClick: () -> Unit) {
-    val screenWidth = if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp
+    val screenWidth =
+        if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp
     Button(
         modifier = Modifier
             .size((screenWidth / 4).dp - 4.dp),
@@ -272,6 +229,8 @@ private fun ArrowButton(icon: ImageVector, colors: TimePickerDialogColors, onCli
 private fun ActionButtons(
     time: MutableState<TimeForDialog>,
     colors: TimePickerDialogColors,
+    saveButtonText: String,
+    cancelButtonText: String,
     onCloseDialog: () -> Unit,
     onPick: (hour: Int, minute: Int) -> Unit
 ) {
@@ -281,7 +240,7 @@ private fun ActionButtons(
     ) {
         TextButton(onClick = onCloseDialog) {
             Text(
-                text = "cancel",
+                text = cancelButtonText,
                 color = colors.actionButtonTextColor
             )
         }
@@ -290,7 +249,7 @@ private fun ActionButtons(
             onCloseDialog()
         }) {
             Text(
-                text = "save",
+                text = saveButtonText,
                 color = colors.actionButtonTextColor
             )
         }
@@ -303,7 +262,8 @@ private fun TimeText(
     time: MutableState<TimeForDialog>,
     colors: TimePickerDialogColors
 ) {
-    val screenWidth = if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp
+    val screenWidth =
+        if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp
     val fontSize = screenWidth / 10
     Box(
         modifier = Modifier
@@ -413,7 +373,6 @@ private fun TimeTextNumber(
     )
 }
 
-private data class TimeForDialog(val hour: Int, val minute: Int) : Serializable
 data class TimePickerDialogColors(
     val backgroundColor: Color,
     val numberButtonTextColor: Color,
@@ -440,22 +399,57 @@ object TimePickerDialogDefaults {
     )
 }
 
-@Preview
-@Composable
-private fun PreviewTimePicker() {
-    val show = remember {
-        mutableStateOf(true)
-    }
-    if (show.value) {
-        TimePickerDialog(
-            time = Calendar.getInstance().timeInMillis,
-            onCloseDialog = {
-                show.value = false
-            },
-            onPick = { _, _ ->
+private data class TimeForDialog(val hour: Int, val minute: Int) : Serializable
 
+private fun nextTime(selected: MutableState<Int>) {
+    if (selected.value < 3) selected.value++ else selected.value = 0
+}
+
+private fun previousTime(selected: MutableState<Int>) {
+    if (selected.value > 0) selected.value-- else selected.value = 3
+}
+
+private fun numberButtonClicked(
+    number: Int,
+    selected: MutableState<Int>,
+    time: MutableState<TimeForDialog>
+) {
+    var hour = time.value.hour
+    var minute = time.value.minute
+    var twiceMoves = false
+    when (selected.value) {
+        0 -> {
+            hour = if (number > 2) {
+                twiceMoves = true
+                number
+            } else {
+                hour % 10 + number * 10
             }
-        )
+        }
+
+        1 -> {
+            hour = (hour / 10).toInt() * 10 + number
+        }
+
+        2 -> {
+            minute = if (number > 5) {
+                twiceMoves = true
+                number
+            } else {
+                minute % 10 + number * 10
+            }
+        }
+
+        3 -> {
+            minute = (minute / 10).toInt() * 10 + number
+        }
     }
+    time.value = time.value.copy(hour = hour, minute = minute)
+    if (twiceMoves) {
+        selected.value = if (selected.value == 0) 2 else 0
+    } else {
+        nextTime(selected)
+    }
+
 
 }
