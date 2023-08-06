@@ -75,11 +75,55 @@ import java.util.Locale
 
 @Composable
 fun DatePickerDialog(
+    time: Long,
+    colors: DatePickerDialogColors = DatePickerDialogDefaults.colors,
+    saveButtonText: String = "save",
+    cancelButtonText: String = "cancel",
+    weekDaysNames: List<String> = listOf(
+        "ПН",
+        "ВТ",
+        "СР",
+        "ЧТ",
+        "ПТ",
+        "СБ",
+        "ВС"
+    ),
+    onCloseDialog: () -> Unit,
+    onPick: (year: Int, month: Int, dat: Int) -> Unit
+) {
+    val instant = Instant.ofEpochMilli(time)
+    val localDateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault())
+    DatePickerDialog(
+        year = localDateTime.year,
+        month = localDateTime.month.value,
+        day = localDateTime.dayOfMonth,
+        saveButtonText = saveButtonText,
+        cancelButtonText = cancelButtonText,
+        weekDaysNames = weekDaysNames,
+        colors = colors,
+        onCloseDialog = onCloseDialog,
+        onPick = onPick
+    )
+}
+
+@Composable
+fun DatePickerDialog(
     year: Int,
     month: Int,
     day: Int,
-    onCloseDialog: () -> Unit,
     colors: DatePickerDialogColors = DatePickerDialogDefaults.colors,
+    saveButtonText: String = "save",
+    cancelButtonText: String = "cancel",
+    weekDaysNames: List<String> = listOf(
+        "ПН",
+        "ВТ",
+        "СР",
+        "ЧТ",
+        "ПТ",
+        "СБ",
+        "ВС"
+    ),
+    onCloseDialog: () -> Unit,
     onPick: (year: Int, month: Int, dat: Int) -> Unit
 ) {
     val screenWidthDp = getScreenWidthDp()
@@ -120,11 +164,12 @@ fun DatePickerDialog(
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            DialogHeader(date = date)
+            DialogHeader(date = date, colors = colors)
             DialogMonthAndYearChanger(
                 pickYear = pickYear,
                 scrollState = calendarScrollState,
-                monthList = monthList
+                monthList = monthList,
+                colors = colors
             )
             Divider()
             Box(
@@ -136,12 +181,13 @@ fun DatePickerDialog(
                     pickYear = pickYear,
                     date = date,
                     scrollState = calendarScrollState,
-                    monthList = monthList
+                    monthList = monthList,
+                    colors = colors,
+                    weekDaysNames = weekDaysNames
                 )
                 YearPicking(
-                    pickYear,
-                    date,
-                    colors,
+                    pickYear = pickYear,
+                    colors = colors,
                     scrollState = calendarScrollState,
                     monthList = monthList
                 )
@@ -150,16 +196,111 @@ fun DatePickerDialog(
                 date = date,
                 colors = colors,
                 onCloseDialog = onCloseDialog,
-                onPick = onPick
+                onPick = onPick,
+                saveButtonText = saveButtonText,
+                cancelButtonText = cancelButtonText
             )
         }
     }
 }
 
 @Composable
+private fun DialogHeader(date: MutableState<DateForDialog>, colors: DatePickerDialogColors) {
+    val dateFormatter = SimpleDateFormat("d MMM yyyy г.", Locale.getDefault())
+    val symbols = dateFormatter.dateFormatSymbols
+    symbols.months = symbols.months.map { it.capitalize() }.toTypedArray()
+    dateFormatter.dateFormatSymbols = symbols
+    val localDateTime = LocalDateTime.of(date.value.year, date.value.month, date.value.day, 0, 0)
+    Text(
+        modifier = Modifier.padding(5.dp),
+        text = dateFormatter.format(localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()),
+        fontSize = largeFontSize(),
+        color = colors.dateTextColor
+    )
+}
+
+@Composable
+private fun DialogMonthAndYearChanger(
+    pickYear: MutableState<Boolean>,
+    scrollState: LazyListState,
+    monthList: List<CalendarItemData>,
+    colors: DatePickerDialogColors
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start
+    ) {
+        val currentMouthIndex by remember {
+            derivedStateOf {
+                scrollState.firstVisibleItemIndex
+            }
+        }
+        TextButton(onClick = { pickYear.value = !pickYear.value }) {
+            val dateFormatter = SimpleDateFormat("LLLL yyyy г.", Locale.getDefault())
+            val localDateTime = LocalDateTime.of(
+                monthList[currentMouthIndex].year,
+                monthList[currentMouthIndex].month,
+                1,
+                0,
+                0
+            )
+            Text(
+                text = dateFormatter.format(
+                    localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()
+                ),
+                fontSize = smallFontSize(),
+                color = colors.pickYearTextColor
+            )
+            Icon(
+                modifier = Modifier
+                    .graphicsLayer(scaleY = if (pickYear.value) -1f else 1f),
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = null,
+                tint = colors.pickYearTextColor
+            )
+        }
+        if (!pickYear.value) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                val scope = rememberCoroutineScope()
+                IconButton(onClick = {
+                    if (currentMouthIndex != 0) {
+                        scope.launch {
+                            scrollState.animateScrollToItem(currentMouthIndex - 1)
+                        }
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Rounded.KeyboardArrowLeft,
+                        contentDescription = null,
+                        tint = colors.arrowButtonColor
+                    )
+                }
+                IconButton(onClick = {
+                    if (currentMouthIndex != monthList.size - 1) {
+                        scope.launch {
+                            scrollState.animateScrollToItem(currentMouthIndex + 1)
+                        }
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Rounded.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = colors.arrowButtonColor
+                    )
+                }
+            }
+        }
+
+    }
+}
+
+@Composable
 private fun YearPicking(
     pickYear: MutableState<Boolean>,
-    date: MutableState<DateForDialog>,
     colors: DatePickerDialogColors,
     scrollState: LazyListState,
     monthList: List<CalendarItemData>
@@ -188,23 +329,58 @@ private fun YearPicking(
     }
 }
 
+@SuppressLint("CoroutineCreationDuringComposition")
 @Composable
-fun DatePickerDialog(
-    time: Long,
-    colors: DatePickerDialogColors = DatePickerDialogDefaults.colors,
-    onCloseDialog: () -> Unit,
-    onPick: (year: Int, month: Int, dat: Int) -> Unit
+private fun PickYear(
+    colors: DatePickerDialogColors,
+    pickYear: MutableState<Boolean>,
+    scrollState: LazyListState,
+    monthList: List<CalendarItemData>
 ) {
-    val instant = Instant.ofEpochMilli(time)
-    val localDateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault())
-    DatePickerDialog(
-        year = localDateTime.year,
-        month = localDateTime.month.value,
-        day = localDateTime.dayOfMonth,
-        colors = colors,
-        onCloseDialog = onCloseDialog,
-        onPick = onPick
-    )
+    val yearNow = LocalDate.now().year
+    val minYear = (yearNow / 100).toInt() * 100 - 100
+    val state = rememberLazyGridState()
+    val scope = rememberCoroutineScope()
+    val currentMouthIndex by remember {
+        derivedStateOf {
+            scrollState.firstVisibleItemIndex
+        }
+    }
+    scope.launch {
+        state.scrollToItem(monthList[currentMouthIndex].year - minYear)
+    }
+    val years = arrayListOf<Int>().apply {
+        repeat(200) {
+            add(minYear + it)
+        }
+    }
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(3),
+        state = state
+    ) {
+        items(
+            items = years,
+            key = { it }
+        ) { year ->
+            DateButton(
+                text = year.toString(),
+                type = when (year) {
+                    monthList[currentMouthIndex].year -> DateButtonType.Selected
+                    yearNow -> DateButtonType.Now
+                    else -> DateButtonType.Unselected
+                },
+                colors = colors
+            ) {
+                if (year != monthList[currentMouthIndex].year) {
+                    val currentItem = monthList[currentMouthIndex]
+                    scope.launch {
+                        scrollState.scrollToItem(monthList.indexOf(currentItem.copy(year = year)))
+                    }
+                }
+                pickYear.value = false
+            }
+        }
+    }
 }
 
 @SuppressLint("CoroutineCreationDuringComposition")
@@ -213,7 +389,9 @@ private fun DialogCalendar(
     pickYear: MutableState<Boolean>,
     date: MutableState<DateForDialog>,
     scrollState: LazyListState,
-    monthList: List<CalendarItemData>
+    monthList: List<CalendarItemData>,
+    colors: DatePickerDialogColors,
+    weekDaysNames: List<String>
 ) {
     AnimatedVisibility(
         visible = !pickYear.value,
@@ -226,15 +404,7 @@ private fun DialogCalendar(
             Row(
                 modifier = Modifier.weight(1f)
             ) {
-                listOf(
-                    "ПН",
-                    "ВТ",
-                    "СР",
-                    "ЧТ",
-                    "ПТ",
-                    "СБ",
-                    "ВС"
-                ).forEach {
+                weekDaysNames.forEach {
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -243,7 +413,8 @@ private fun DialogCalendar(
                     ) {
                         Text(
                             text = it,
-                            fontSize = smallFontSize()
+                            fontSize = smallFontSize(),
+                            color = colors.unselectedButtonTextColor
                         )
                     }
                 }
@@ -261,7 +432,8 @@ private fun DialogCalendar(
                         CalendarItem(
                             data = calendarItemData,
                             selected = checkCalendarSelected(calendarItemData, date.value),
-                            now = checkCalendarNow(calendarItemData)
+                            now = checkCalendarNow(calendarItemData),
+                            colors = colors
                         ) { day ->
                             date.value = date.value.copy(
                                 year = calendarItemData.year,
@@ -295,35 +467,12 @@ private fun DialogCalendar(
     }
 }
 
-private fun checkCalendarSelected(
-    calendarItemData: CalendarItemData,
-    date: DateForDialog
-) =
-    if (calendarItemData.year == date.year && calendarItemData.month == date.month) date.day else null
-
-private fun checkCalendarNow(
-    calendarItemData: CalendarItemData
-) =
-    if (calendarItemData.year == LocalDate.now().year && calendarItemData.month == LocalDate.now().month.value) LocalDate.now().dayOfMonth else null
-
-private data class CalendarItemData(val year: Int, val month: Int) : Serializable
-
-@Composable
-private fun smallFontSize(): TextUnit {
-    val screenWidthDp = getScreenWidthDp()
-    return (screenWidthDp/20).sp
-}
-
-@Composable
-private fun largeFontSize(): TextUnit {
-    val screenWidthDp = getScreenWidthDp()
-    return (screenWidthDp/10).sp
-}
 @Composable
 private fun CalendarItem(
     data: CalendarItemData,
     selected: Int? = null,
     now: Int? = null,
+    colors: DatePickerDialogColors,
     onClick: (day: Int) -> Unit
 ) {
     val localDate = LocalDate.of(data.year, data.month, 1)
@@ -364,11 +513,12 @@ private fun CalendarItem(
                             DateButton(
                                 text = day.toString(),
                                 contentPadding = PaddingValues(0.dp),
-                                data = when (day) {
-                                    selected -> DateButtonData.Selected
-                                    now -> DateButtonData.Now
-                                    else -> DateButtonData.Unselected
-                                }
+                                type = when (day) {
+                                    selected -> DateButtonType.Selected
+                                    now -> DateButtonType.Now
+                                    else -> DateButtonType.Unselected
+                                },
+                                colors = colors
                             ) {
                                 onClick(day)
                             }
@@ -385,7 +535,9 @@ private fun ActionButtons(
     date: MutableState<DateForDialog>,
     colors: DatePickerDialogColors,
     onCloseDialog: () -> Unit,
-    onPick: (year: Int, month: Int, day: Int) -> Unit
+    onPick: (year: Int, month: Int, day: Int) -> Unit,
+    saveButtonText: String,
+    cancelButtonText: String
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -393,7 +545,7 @@ private fun ActionButtons(
     ) {
         TextButton(onClick = onCloseDialog) {
             Text(
-                text = "cancel",
+                text = cancelButtonText,
                 color = colors.actionButtonTextColor
             )
         }
@@ -402,170 +554,9 @@ private fun ActionButtons(
             onCloseDialog()
         }) {
             Text(
-                text = "save",
+                text = saveButtonText,
                 color = colors.actionButtonTextColor
             )
-        }
-    }
-}
-
-private data class DateForDialog(val year: Int, val month: Int, val day: Int) : Serializable
-data class DatePickerDialogColors(
-    val backgroundColor: Color,
-    val numberButtonTextColor: Color,
-    val numberButtonColor: Color,
-    val arrowButtonTextColor: Color,
-    val arrowButtonColor: Color,
-    val selectedTextColor: Color,
-    val unselectedTextColor: Color,
-    val rectangleColor: Color,
-    val actionButtonTextColor: Color
-)
-
-object DatePickerDialogDefaults {
-    val colors = DatePickerDialogColors(
-        backgroundColor = Color.White,
-        numberButtonTextColor = Color.Black,
-        numberButtonColor = Color.Gray.copy(alpha = 0.1f),
-        arrowButtonTextColor = Color.Black.copy(alpha = 0.4f),
-        arrowButtonColor = Color(0xFF6650a4).copy(alpha = 0.3f),
-        selectedTextColor = Color(0xFF6650a4),
-        unselectedTextColor = Color.Black,
-        rectangleColor = Color(0xFF6650a4).copy(alpha = 0.3f),
-        actionButtonTextColor = Color(0xFF6650a4)
-    )
-}
-
-@Composable
-private fun DialogHeader(date: MutableState<DateForDialog>) {
-    val dateFormatter = SimpleDateFormat("d MMM yyyy г.", Locale.getDefault())
-    val symbols = dateFormatter.dateFormatSymbols
-    symbols.months = symbols.months.map { it.capitalize() }.toTypedArray()
-    dateFormatter.dateFormatSymbols = symbols
-    val localDateTime = LocalDateTime.of(date.value.year, date.value.month, date.value.day, 0, 0)
-    Text(
-        modifier = Modifier.padding(5.dp),
-        text = dateFormatter.format(localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()),
-        fontSize = largeFontSize()
-    )
-}
-
-
-@Composable
-private fun DialogMonthAndYearChanger(
-    pickYear: MutableState<Boolean>,
-    scrollState: LazyListState,
-    monthList: List<CalendarItemData>
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Start
-    ) {
-        val currentMouthIndex by remember {
-            derivedStateOf {
-                scrollState.firstVisibleItemIndex
-            }
-        }
-        TextButton(onClick = { pickYear.value = !pickYear.value }) {
-            val dateFormatter = SimpleDateFormat("LLLL yyyy г.", Locale.getDefault())
-            val localDateTime = LocalDateTime.of(
-                monthList[currentMouthIndex].year,
-                monthList[currentMouthIndex].month,
-                1,
-                0,
-                0
-            )
-            Text(
-                text = dateFormatter.format(
-                    localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()
-                ),
-                fontSize = smallFontSize()
-            )
-            Icon(
-                modifier = Modifier
-                    .graphicsLayer(scaleY = if (pickYear.value) -1f else 1f),
-                imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = null
-            )
-        }
-        if (!pickYear.value) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                val scope = rememberCoroutineScope()
-                IconButton(onClick = {
-                    if (currentMouthIndex != 0) {
-                        scope.launch {
-                            scrollState.animateScrollToItem(currentMouthIndex - 1)
-                        }
-                    }
-                }) {
-                    Icon(Icons.Rounded.KeyboardArrowLeft, contentDescription = null)
-                }
-                IconButton(onClick = {
-                    if (currentMouthIndex != monthList.size - 1) {
-                        scope.launch {
-                            scrollState.animateScrollToItem(currentMouthIndex + 1)
-                        }
-                    }
-                }) {
-                    Icon(Icons.Rounded.KeyboardArrowRight, contentDescription = null)
-                }
-            }
-        }
-
-    }
-}
-
-@SuppressLint("CoroutineCreationDuringComposition")
-@Composable
-private fun PickYear(
-    colors: DatePickerDialogColors,
-    pickYear: MutableState<Boolean>,
-    scrollState: LazyListState,
-    monthList: List<CalendarItemData>
-) {
-    val yearNow = LocalDate.now().year
-    val minYear = (yearNow / 100).toInt() * 100 - 100
-    val state = rememberLazyGridState()
-    val scope = rememberCoroutineScope()
-    val currentMouthIndex by remember {
-        derivedStateOf {
-            scrollState.firstVisibleItemIndex
-        }
-    }
-    scope.launch {
-        state.scrollToItem(monthList[currentMouthIndex].year - minYear)
-    }
-    val years = arrayListOf<Int>().apply {
-        repeat(200) {
-            add(minYear + it)
-        }
-    }
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        state = state
-    ) {
-        items(
-            items = years,
-            key = {it}
-        ) { year ->
-            val data = when (year) {
-                monthList[currentMouthIndex].year -> DateButtonData.Selected
-                yearNow -> DateButtonData.Now
-                else -> DateButtonData.Unselected
-            }
-            DateButton(text = year.toString(), data = data) {
-                if (year != monthList[currentMouthIndex].year) {
-                    val currentItem = monthList[currentMouthIndex]
-                    scope.launch {
-                        scrollState.scrollToItem(monthList.indexOf(currentItem.copy(year = year)))
-                    }
-                    pickYear.value = false
-                }
-            }
         }
     }
 }
@@ -574,10 +565,12 @@ private fun PickYear(
 private fun DateButton(
     modifier: Modifier = Modifier,
     text: String,
-    data: DateButtonData,
+    type: DateButtonType,
+    colors: DatePickerDialogColors,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     onClick: () -> Unit
 ) {
+    val data = getDateButtonDataByType(type = type, colors = colors)
     Button(
         modifier = modifier,
         contentPadding = contentPadding,
@@ -595,28 +588,40 @@ private fun DateButton(
     }
 }
 
-private sealed class DateButtonData(
-    val containerColor: Color,
-    val textColor: Color,
-    val border: BorderStroke?
-) {
-    object Selected : DateButtonData(
-        containerColor = Color(0xFF6650a4),
-        textColor = Color.White,
-        border = null
-    )
+private fun checkCalendarSelected(
+    calendarItemData: CalendarItemData,
+    date: DateForDialog
+) =
+    if (calendarItemData.year == date.year && calendarItemData.month == date.month) date.day else null
 
-    object Now : DateButtonData(
-        containerColor = Color.Transparent,
-        textColor = Color(0xFF6650a4),
-        border = BorderStroke(2.dp, Color(0xFF6650a4))
-    )
+private fun checkCalendarNow(
+    calendarItemData: CalendarItemData
+) =
+    if (calendarItemData.year == LocalDate.now().year && calendarItemData.month == LocalDate.now().month.value) LocalDate.now().dayOfMonth else null
 
-    object Unselected : DateButtonData(
-        containerColor = Color.Transparent,
-        textColor = Color.Black,
-        border = null
-    )
+private fun getDateButtonDataByType(
+    type: DateButtonType,
+    colors: DatePickerDialogColors
+): DateButtonData {
+    return when (type) {
+        DateButtonType.Selected -> DateButtonData(
+            containerColor = colors.selectedButtonColor,
+            textColor = colors.selectedButtonTextColor,
+            border = null
+        )
+
+        DateButtonType.Now -> DateButtonData(
+            containerColor = Color.Transparent,
+            textColor = colors.selectedButtonColor,
+            border = BorderStroke(2.dp, colors.selectedButtonColor)
+        )
+
+        DateButtonType.Unselected -> DateButtonData(
+            containerColor = Color.Transparent,
+            textColor = colors.unselectedButtonTextColor,
+            border = null
+        )
+    }
 }
 
 @Composable
@@ -635,3 +640,48 @@ private fun getMonthList(): List<CalendarItemData> {
         }
     }
 }
+
+@Composable
+private fun smallFontSize(): TextUnit {
+    val screenWidthDp = getScreenWidthDp()
+    return ((screenWidthDp - 20) / 20).sp
+}
+
+@Composable
+private fun largeFontSize(): TextUnit {
+    val screenWidthDp = getScreenWidthDp()
+    return ((screenWidthDp - 20) / 10).sp
+}
+
+data class DatePickerDialogColors(
+    val backgroundColor: Color,
+    val selectedButtonColor: Color,
+    val selectedButtonTextColor: Color,
+    val unselectedButtonTextColor: Color,
+    val actionButtonTextColor: Color,
+    val dateTextColor: Color,
+    val pickYearTextColor: Color,
+    val arrowButtonColor: Color
+)
+
+object DatePickerDialogDefaults {
+    val colors = DatePickerDialogColors(
+        backgroundColor = Color.White,
+        selectedButtonColor = Color(0xFF6650a4),
+        selectedButtonTextColor = Color.White,
+        unselectedButtonTextColor = Color.Black,
+        actionButtonTextColor = Color(0xFF6650a4),
+        dateTextColor = Color.Black,
+        pickYearTextColor = Color(0xFF6650a4),
+        arrowButtonColor = Color.Black
+    )
+}
+
+private data class CalendarItemData(val year: Int, val month: Int) : Serializable
+private data class DateForDialog(val year: Int, val month: Int, val day: Int) : Serializable
+private enum class DateButtonType { Selected, Now, Unselected }
+private data class DateButtonData(
+    val containerColor: Color,
+    val textColor: Color,
+    val border: BorderStroke?
+)
