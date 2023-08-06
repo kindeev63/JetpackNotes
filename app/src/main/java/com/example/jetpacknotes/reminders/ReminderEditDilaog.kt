@@ -2,6 +2,7 @@ package com.example.jetpacknotes.reminders
 
 import android.content.res.Configuration
 import android.util.Log
+import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -122,7 +124,6 @@ private fun TimeRow(reminder: MutableState<Reminder>) {
                     showTimePickerDialog.value = false
                 },
                 onPick = { hour, minute ->
-                    Log.e("test", "$hour:$minute")
                     val instant = Instant.ofEpochMilli(reminder.value.time)
                     val reminderTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault()).atZone(
                         ZoneId.systemDefault())
@@ -139,13 +140,13 @@ private fun TimeRow(reminder: MutableState<Reminder>) {
             text = timeFormatter.format(reminder.value.time),
             fontSize = ((if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp) * 0.1).sp
         )
-
+        val soundIcon by animateIntAsState(if (reminder.value.sound) R.drawable.ic_sound_on else R.drawable.ic_sound_off)
         Spacer(modifier = Modifier.width(5.dp))
         IconButton(onClick = {
             reminder.value = reminder.value.copy(sound = !reminder.value.sound)
         }) {
             Icon(
-                painter = painterResource(id = if (reminder.value.sound) R.drawable.ic_sound_on else R.drawable.ic_sound_off),
+                painter = painterResource(id = soundIcon),
                 contentDescription = null
             )
         }
