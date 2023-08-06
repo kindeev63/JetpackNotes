@@ -169,8 +169,11 @@ private fun DateRow(reminder: MutableState<Reminder>) {
                     showDatePickerDialog.value = false
                 },
                 onPick = { year, month, day ->
-                    val localDateTime = LocalDateTime.of(year, month, day, 0, 0)
-                    reminder.value = reminder.value.copy(time = localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli())
+                    val instant = Instant.ofEpochMilli(reminder.value.time)
+                    val reminderTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault()).atZone(
+                        ZoneId.systemDefault())
+                    val localDateTime = reminderTime.withYear(year).withMonth(month).withDayOfMonth(day)
+                    reminder.value = reminder.value.copy(time = localDateTime.toInstant().toEpochMilli())
                 }
             )
         }
