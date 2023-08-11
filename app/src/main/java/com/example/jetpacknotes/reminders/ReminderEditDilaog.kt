@@ -1,6 +1,10 @@
 package com.example.jetpacknotes.reminders
 
 import android.annotation.SuppressLint
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -67,6 +71,7 @@ import com.example.jetpacknotes.myItems.ApplicationData
 import com.example.jetpacknotes.myItems.DatePickerDialog
 import com.example.jetpacknotes.myItems.NoteItem
 import com.example.jetpacknotes.myItems.TimePickerDialog
+import com.example.jetpacknotes.receivers.AlarmReceiver
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDateTime
@@ -110,11 +115,13 @@ fun ReminderEditDialog(
                 Row(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
+                    val context = LocalContext.current
                     TextButton(onClick = { reminderState.value = null }) {
                         Text(text = "cancel")
                     }
                     TextButton(onClick = {
                         mainAppViewModel.insertReminder(reminder.value) {
+                            setAlarm(reminder.value, context)
                             reminderState.value = null
                         }
                     }) {
@@ -126,6 +133,23 @@ fun ReminderEditDialog(
     }
 }
 
+private fun setAlarm(reminder: Reminder, context: Context) {
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val intent = Intent(context, AlarmReceiver::class.java).apply {
+        putExtra("reminder", reminder)
+    }
+
+    val pendingIntent = PendingIntent.getBroadcast(
+        context,
+        reminder.id,
+        intent,
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+    )
+
+    alarmManager.setExactAndAllowWhileIdle(
+        AlarmManager.RTC_WAKEUP, reminder.time, pendingIntent
+    )
+}
 @Composable
 private fun DialogContent(reminder: MutableState<Reminder>, mainAppViewModel: MainAppViewModel) {
     Column(

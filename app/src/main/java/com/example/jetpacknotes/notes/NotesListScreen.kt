@@ -59,6 +59,7 @@ import com.example.jetpacknotes.viewModels.NotesListScreenViewModelFactory
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.window.Dialog
 import com.example.jetpacknotes.Colors
@@ -311,7 +312,8 @@ private fun NotesListAppBar(
                 modifier = Modifier.weight(1f)
             )
             if (selectedNotes.value.isNotEmpty()) {
-                IconButton(onClick = { viewModel.deleteSelectedNotes() }) {
+                val context = LocalContext.current
+                IconButton(onClick = { viewModel.deleteSelectedNotes(context) }) {
                     Icon(Icons.Outlined.Delete, contentDescription = null)
                 }
             }

@@ -40,6 +40,6 @@ interface AppDao {
     @Delete(Reminder::class)
     suspend fun deleteReminders(reminders: List<Reminder>)
 
-    @Query("SELECT * FROM table_reminders WHERE id = :id")
-    suspend fun getReminderById(id: Int): Reminder?
+    @Query("SELECT * FROM table_reminders")
+    fun getAllRemindersNotLiveData(): List<Reminder>
 }

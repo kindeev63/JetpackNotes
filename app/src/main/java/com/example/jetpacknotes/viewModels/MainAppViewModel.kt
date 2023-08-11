@@ -11,7 +11,9 @@ import com.example.jetpacknotes.db.Category
 import com.example.jetpacknotes.db.CategoryType
 import com.example.jetpacknotes.db.Note
 import com.example.jetpacknotes.db.Reminder
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainAppViewModel(application: Application) : AndroidViewModel(application) {
     private val appDao: AppDao
@@ -58,10 +60,9 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         appDao.deleteReminders(reminders)
     }
 
-    suspend fun getReminderById(reminderId: Int, function: (Reminder?) -> Unit) {
-        viewModelScope.launch {
-            val reminder = appDao.getReminderById(reminderId)
-            function(reminder)
+    suspend fun getAllReminders(): List<Reminder> {
+        return withContext(Dispatchers.IO) {
+            appDao.getAllRemindersNotLiveData()
         }
     }
 }

@@ -139,7 +139,8 @@ private fun RemindersListAppBar(
                 modifier = Modifier.weight(1f)
             )
             if (selectedReminders.value.isNotEmpty()) {
-                IconButton(onClick = { viewModel.deleteSelectedReminders() }) {
+                val context = LocalContext.current
+                IconButton(onClick = { viewModel.deleteSelectedReminders(context) }) {
                     Icon(Icons.Outlined.Delete, contentDescription = null)
                 }
             }
