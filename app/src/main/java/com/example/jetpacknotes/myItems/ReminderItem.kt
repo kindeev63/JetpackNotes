@@ -2,6 +2,7 @@ package com.example.jetpacknotes.myItems
 
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -97,7 +98,7 @@ fun ReminderItem(
                 verticalArrangement = Arrangement.Bottom,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
+                Image(
                     modifier = Modifier.size(25.dp),
                     bitmap = actionIcon.toBitmap().asImageBitmap(),
                     contentDescription = null
