@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.RingtoneManager
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
@@ -46,7 +47,8 @@ class AlarmReceiver: BroadcastReceiver() {
     }
     @SuppressLint("MissingPermission")
     private fun createNotification(context:Context, title: String, description: String, reminderId:Int, noteId: Int?, packageName: String, action: ReminderAction){
-        val notificationIntent = if (action == ReminderAction.OpenApp) context.packageManager.getLaunchIntentForPackage(packageName) else Intent(context, MainActivity::class.java).apply {
+        val correctPackageName = getCorrectPackageName(packageName, context)
+        val notificationIntent = if (action == ReminderAction.OpenApp) context.packageManager.getLaunchIntentForPackage(correctPackageName) else Intent(context, MainActivity::class.java).apply {
             putExtra("noteId", noteId!!)
         }
         notificationIntent?.flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -61,5 +63,15 @@ class AlarmReceiver: BroadcastReceiver() {
             .setAutoCancel(true)
         val manager = NotificationManagerCompat.from(context)
         manager.notify(reminderId, builder.build())
+    }
+
+    private fun getCorrectPackageName(packageName: String, context: Context): String {
+        val packageManager = context.packageManager
+        return try {
+            packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
+            packageName
+        } catch (e: PackageManager.NameNotFoundException) {
+            context.packageName
+        }
     }
 }

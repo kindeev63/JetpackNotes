@@ -1,6 +1,7 @@
 package com.example.jetpacknotes.reminders
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -91,6 +92,7 @@ fun RemindersListScreen(
                     searchText.value,
                 ),
                 selectedReminders = selectedReminders.value,
+                mainAppViewModel = mainAppViewModel,
                 onClick = { reminder, long ->
                     if (long) {
                         viewModel.changeSelectionStateOf(reminder)
@@ -103,7 +105,6 @@ fun RemindersListScreen(
                     }
                 },
             )
-
         }
     }
 }
@@ -152,6 +153,7 @@ private fun RemindersListAppBar(
 private fun RemindersList(
     remindersList: List<Reminder>,
     selectedReminders: List<Reminder>,
+    mainAppViewModel: MainAppViewModel,
     onClick: (Reminder, Boolean) -> Unit,
 ) {
     val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -169,11 +171,18 @@ private fun RemindersList(
                 if (reminder.action == ReminderAction.OpenNote) {
                     LocalContext.current.getDrawable(R.drawable.ic_note)!!
                 } else {
+                    val packageName = if (isAppInstalled(reminder.packageName, LocalContext.current)) {
+                        reminder.packageName
+                    } else {
+                        mainAppViewModel.insertReminder(reminder.copy(packageName = LocalContext.current.packageName))
+                        LocalContext.current.packageName
+                    }
                     LocalContext.current.packageManager.getApplicationIcon(
                         LocalContext.current.packageManager.getApplicationInfo(
-                            reminder.packageName, PackageManager.GET_META_DATA
+                            packageName, PackageManager.GET_META_DATA
                         )
                     )
+
                 },
                 sound = reminder . sound,
                 onClick = {
@@ -184,5 +193,15 @@ private fun RemindersList(
                 }
             )
         }
+    }
+}
+
+private fun isAppInstalled(packageName: String, context: Context): Boolean {
+    val packageManager = context.packageManager
+    return try {
+        packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES)
+        true
+    } catch (e: PackageManager.NameNotFoundException) {
+        false
     }
 }
