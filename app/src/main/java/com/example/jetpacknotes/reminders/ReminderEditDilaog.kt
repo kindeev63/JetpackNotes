@@ -8,6 +8,10 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -25,6 +29,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -62,6 +67,7 @@ import java.util.Locale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.example.jetpacknotes.Colors
 import com.example.jetpacknotes.R
@@ -150,6 +156,7 @@ private fun setAlarm(reminder: Reminder, context: Context) {
         AlarmManager.RTC_WAKEUP, reminder.time, pendingIntent
     )
 }
+
 @Composable
 private fun DialogContent(reminder: MutableState<Reminder>, mainAppViewModel: MainAppViewModel) {
     Column(
@@ -344,11 +351,44 @@ private fun AppCard(reminder: MutableState<Reminder>) {
     if (openAppDialog.value) {
         PickAppDialog(open = openAppDialog, reminder = reminder)
     }
+    val showReadAllAppsPermissionNotGrantedDialog = rememberSaveable {
+        mutableStateOf(false)
+    }
+    if (showReadAllAppsPermissionNotGrantedDialog.value) {
+        ReadAllAppsPermissionNotGrantedDialog(open = showReadAllAppsPermissionNotGrantedDialog)
+    }
+    val readAllAppsListPermissionLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            if (!isGranted) {
+                showReadAllAppsPermissionNotGrantedDialog.value = true
+            }
+        }
+    val scope = rememberCoroutineScope()
+    val sharedPreferences = LocalContext.current.applicationContext.getSharedPreferences(
+        "settings",
+        Context.MODE_PRIVATE
+    )
     Card(
         modifier = Modifier
             .fillMaxSize()
             .clickable {
-                openAppDialog.value = true
+                val permission = ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.READ_EXTERNAL_STORAGE
+                )
+                if (permission == PackageManager.PERMISSION_GRANTED || sharedPreferences.getBoolean(
+                        "no_read_storage_permission",
+                        false
+                    )
+                ) {
+                    openAppDialog.value = true
+                } else {
+                    scope.launch {
+                        readAllAppsListPermissionLauncher.launch(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                    }
+                }
             }
     ) {
         Column(
@@ -369,6 +409,57 @@ private fun AppCard(reminder: MutableState<Reminder>) {
             )
         }
 
+    }
+}
+
+@Composable
+private fun ReadAllAppsPermissionNotGrantedDialog(open: MutableState<Boolean>) {
+    Dialog(onDismissRequest = { open.value = false }) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color.White)
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Вы не сможете выбирать другие приложения, если вы не дадите разрешение на чтение внутренней памяти (необходио для чтения списка приложений) в настройках приложения. Если вы не найдёте этого разрешения то выберите \"не нашёл\""
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                val sharedPreferences =
+                    LocalContext.current.applicationContext.getSharedPreferences(
+                        "settings",
+                        Context.MODE_PRIVATE
+                    )
+                val context = LocalContext.current
+                TextButton(onClick = {
+                    val intent = Intent()
+                    intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                    intent.data = Uri.fromParts("package", context.packageName, null)
+                    context.startActivity(intent)
+                    open.value = false
+                }) {
+                    Text(
+                        text = "в настройки"
+                    )
+                }
+                TextButton(onClick = {
+                    val editor = sharedPreferences.edit()
+                    editor.putBoolean("no_read_storage_permission", true)
+                    editor.apply()
+                    open.value = false
+                }) {
+                    Text(
+                        text = "не нашёл"
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -433,7 +524,7 @@ private fun NoteCard(reminder: MutableState<Reminder>, mainAppViewModel: MainApp
         mutableStateOf(false)
     }
     scope.launch {
-        reminder.value.noteId?.let {noteId ->
+        reminder.value.noteId?.let { noteId ->
             mainAppViewModel.getNoteById(noteId) {
                 noteState.value = it
             }

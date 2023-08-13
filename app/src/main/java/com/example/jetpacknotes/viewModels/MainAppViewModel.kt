@@ -1,7 +1,6 @@
 package com.example.jetpacknotes.viewModels
 
 import android.app.Application
-import android.app.FragmentManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.viewModelScope
