@@ -17,17 +17,34 @@ import com.example.jetpacknotes.R
 import com.example.jetpacknotes.db.Reminder
 import com.example.jetpacknotes.db.ReminderAction
 
-class AlarmReceiver: BroadcastReceiver() {
+class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val reminder = intent.getSerializableExtra("reminder") as Reminder
+        val notificationIntent = when (reminder.action) {
+            ReminderAction.OpenApp -> {
+                context.packageManager.getLaunchIntentForPackage(getCorrectPackageName(reminder.packageName, context))
+            }
+
+            ReminderAction.OpenNote -> {
+                Intent(context, MainActivity::class.java).apply {
+                    reminder.itemId?.let { putExtra("noteId", reminder.itemId) }
+                }
+            }
+
+            ReminderAction.OpenTask -> {
+                Intent(context, MainActivity::class.java).apply {
+                    reminder.itemId?.let { putExtra("taskId", reminder.itemId) }
+                }
+            }
+        }
+        notificationIntent?.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+
         createNotification(
             context,
+            reminder.id,
             reminder.title,
             reminder.description,
-            reminder.id,
-            reminder.noteId,
-            reminder.packageName,
-            reminder.action
+            notificationIntent
         )
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         val wakeLock = powerManager.newWakeLock(
@@ -40,19 +57,29 @@ class AlarmReceiver: BroadcastReceiver() {
         mainAppViewModel.deleteReminders(listOf(reminder))
     }
 
-    private fun playNotificationSound(context: Context){
-        val notificationSound = RingtoneManager.getRingtone(context, RingtoneManager.getDefaultUri(
-            RingtoneManager.TYPE_NOTIFICATION))
+    private fun playNotificationSound(context: Context) {
+        val notificationSound = RingtoneManager.getRingtone(
+            context, RingtoneManager.getDefaultUri(
+                RingtoneManager.TYPE_NOTIFICATION
+            )
+        )
         notificationSound.play()
     }
+
     @SuppressLint("MissingPermission")
-    private fun createNotification(context:Context, title: String, description: String, reminderId:Int, noteId: Int?, packageName: String, action: ReminderAction){
-        val correctPackageName = getCorrectPackageName(packageName, context)
-        val notificationIntent = if (action == ReminderAction.OpenApp) context.packageManager.getLaunchIntentForPackage(correctPackageName) else Intent(context, MainActivity::class.java).apply {
-            putExtra("noteId", noteId!!)
-        }
-        notificationIntent?.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        val pendingIntent = PendingIntent.getActivity(context, reminderId, notificationIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+    private fun createNotification(
+        context: Context,
+        id: Int,
+        title: String,
+        description: String,
+        notificationIntent: Intent?
+    ) {
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            id,
+            notificationIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
         val builder = NotificationCompat.Builder(context, Notifications.CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
@@ -62,7 +89,7 @@ class AlarmReceiver: BroadcastReceiver() {
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
         val manager = NotificationManagerCompat.from(context)
-        manager.notify(reminderId, builder.build())
+        manager.notify(id, builder.build())
     }
 
     private fun getCorrectPackageName(packageName: String, context: Context): String {

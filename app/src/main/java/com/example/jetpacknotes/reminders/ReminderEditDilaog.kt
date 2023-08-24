@@ -13,19 +13,23 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,6 +40,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,6 +54,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -66,7 +73,9 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.example.jetpacknotes.Colors
@@ -98,19 +107,23 @@ fun ReminderEditDialog(
             )
         )
     }
-    Dialog(onDismissRequest = { reminderState.value = null }) {
+    Dialog(
+        onDismissRequest = { reminderState.value = null },
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         val scrollState = rememberScrollState()
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min)
+                .heightIn(max = (LocalConfiguration.current.screenHeightDp / 6 * 4).dp)
                 .clip(RoundedCornerShape(5.dp))
+                .padding(PaddingValues(horizontal = 24.dp))
                 .background(Color.Black)
                 .padding(2.dp)
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .clip(RoundedCornerShape(5.dp))
                     .background(Color.White)
                     .padding(5.dp)
@@ -182,7 +195,7 @@ private fun DialogContent(reminder: MutableState<Reminder>, mainAppViewModel: Ma
         Title(reminder = reminder)
         Spacer(modifier = Modifier.height(5.dp))
         Description(reminder = reminder)
-        ActionRadioGroup(reminder = reminder, mainAppViewModel = mainAppViewModel)
+        ReminderActionSpinner(reminder = reminder, mainAppViewModel = mainAppViewModel)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -313,27 +326,87 @@ private fun Description(reminder: MutableState<Reminder>) {
 }
 
 @Composable
-private fun ActionRadioGroup(reminder: MutableState<Reminder>, mainAppViewModel: MainAppViewModel) {
+private fun ReminderActionSpinner(
+    reminder: MutableState<Reminder>,
+    mainAppViewModel: MainAppViewModel
+) {
     Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        RadioButton(selected = reminder.value.action == ReminderAction.OpenApp, onClick = {
-            if (reminder.value.action != ReminderAction.OpenApp) {
-                reminder.value = reminder.value.copy(action = ReminderAction.OpenApp)
-            }
-        })
-        Text(text = "Open App")
-        RadioButton(selected = reminder.value.action == ReminderAction.OpenNote, onClick = {
-            if (mainAppViewModel.allNotes.value?.isNotEmpty() == true) {
-                if (reminder.value.action != ReminderAction.OpenNote) {
-                    reminder.value = reminder.value.copy(action = ReminderAction.OpenNote)
+        var expanded by remember {
+            mutableStateOf(false)
+        }
+        val allNotes = mainAppViewModel.allNotes.observeAsState(emptyList())
+        val allTasks = mainAppViewModel.allTasks.observeAsState(emptyList())
+        Text(text = "Action:")
+        Box(
+            modifier = Modifier.width((getScreenWidthDp() / 3).dp)
+        ) {
+            ReminderActionSpinnerItem(
+                text = when (reminder.value.action) {
+                    ReminderAction.OpenApp -> "Open App"
+                    ReminderAction.OpenNote -> "Open Note"
+                    ReminderAction.OpenTask -> "Open Task"
                 }
+            ) {
+                expanded = true
             }
-
-        })
-        Text(text = "Open Note")
+            DropdownMenu(
+                modifier = Modifier
+                    .width((getScreenWidthDp() / 3).dp)
+                    .background(Color.White.copy(alpha = 0.5f)),
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                Divider()
+                ReminderActionSpinnerItem(text = "Open App") {
+                    reminder.value = reminder.value.copy(action = ReminderAction.OpenApp)
+                    expanded = false
+                }
+                Divider()
+                ReminderActionSpinnerItem(text = "Open Note") {
+                    if (allNotes.value.isNotEmpty()) {
+                        reminder.value = reminder.value.copy(action = ReminderAction.OpenNote)
+                    }
+                    expanded = false
+                }
+                Divider()
+                ReminderActionSpinnerItem(text = "Open Task") {
+                    if (allTasks.value.isNotEmpty()) {
+                        reminder.value = reminder.value.copy(action = ReminderAction.OpenTask)
+                    }
+                    expanded = false
+                }
+                Divider()
+            }
+        }
     }
+}
 
+@Composable
+private fun ReminderActionSpinnerItem(text: String, clickable: () -> Unit = {}) {
+    Box(
+        modifier = if (clickable != {}) {
+            Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .background(Color.White)
+                .clickable { clickable() }
+        } else {
+            Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .background(Color.White)
+        },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            fontWeight = FontWeight.Bold
+        )
+    }
 }
 
 @Composable
@@ -524,7 +597,7 @@ private fun NoteCard(reminder: MutableState<Reminder>, mainAppViewModel: MainApp
         mutableStateOf(false)
     }
     scope.launch {
-        reminder.value.noteId?.let { noteId ->
+        reminder.value.itemId?.let { noteId ->
             mainAppViewModel.getNoteById(noteId) {
                 noteState.value = it
             }
@@ -652,11 +725,11 @@ private fun PickNoteDialog(
                             color = Colors.colors[note.colorIndex],
                             selected = false,
                             onClick = {
-                                reminder.value = reminder.value.copy(noteId = note.id)
+                                reminder.value = reminder.value.copy(itemId = note.id)
                                 open.value = false
                             },
                             onLongClick = {
-                                reminder.value = reminder.value.copy(noteId = note.id)
+                                reminder.value = reminder.value.copy(itemId = note.id)
                                 open.value = false
                             }
                         )

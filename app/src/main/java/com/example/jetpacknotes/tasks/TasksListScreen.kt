@@ -1,12 +1,9 @@
-package com.example.jetpacknotes.notes
+package com.example.jetpacknotes.tasks
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,12 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.DrawerState
@@ -31,60 +24,54 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.jetpacknotes.db.Category
-import com.example.jetpacknotes.db.Note
-import com.example.jetpacknotes.viewModels.MainAppViewModel
-import com.example.jetpacknotes.viewModels.NotesListScreenViewModel
-import com.example.jetpacknotes.viewModels.NotesListScreenViewModelFactory
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.window.Dialog
 import com.example.jetpacknotes.Colors
+import com.example.jetpacknotes.db.Category
+import com.example.jetpacknotes.db.Task
 import com.example.jetpacknotes.myItems.CategoryDialog
 import com.example.jetpacknotes.myItems.CategoryItem
-import com.example.jetpacknotes.myItems.NoteItem
 import com.example.jetpacknotes.myItems.SearchItem
+import com.example.jetpacknotes.myItems.TaskItem
+import com.example.jetpacknotes.reminders.ReminderEditDialog
+import com.example.jetpacknotes.reminders.ReminderForDialog
+import com.example.jetpacknotes.viewModels.MainAppViewModel
+import com.example.jetpacknotes.viewModels.TasksListScreenViewModel
+import com.example.jetpacknotes.viewModels.TasksListScreenViewModelFactory
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotesListScreen(
-    mainAppViewModel: MainAppViewModel,
-    navigateWhenNoteClicked: (Int?) -> Unit
+fun TasksListScreen(
+    mainAppViewModel: MainAppViewModel
 ) {
-    val viewModel: NotesListScreenViewModel = viewModel(
-        factory = NotesListScreenViewModelFactory(mainAppViewModel)
+    val viewModel: TasksListScreenViewModel = viewModel(
+        factory = TasksListScreenViewModelFactory(mainAppViewModel)
     )
-    val categoriesList = mainAppViewModel.categoryOfNotes.observeAsState(listOf())
-
-    val notesList = mainAppViewModel.allNotes.observeAsState(listOf())
-    val selectedNotes = viewModel.selectedNotes.observeAsState(listOf())
+    val categoriesList = mainAppViewModel.categoryOfTasks.observeAsState(listOf())
+    val tasksList = mainAppViewModel.allTasks.observeAsState(listOf())
+    val selectedTasks = viewModel.selectedTasks.observeAsState(listOf())
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val searchText = rememberSaveable {
         mutableStateOf<String?>(null)
@@ -104,6 +91,15 @@ fun NotesListScreen(
     val openCategoryDialog = rememberSaveable {
         mutableStateOf<Category?>(null)
     }
+    val openTaskDialog = rememberSaveable {
+        mutableStateOf<TaskForDialog?>(null)
+    }
+    openTaskDialog.value?.let {
+        TaskEditDialog(
+            taskState = openTaskDialog,
+            mainAppViewModel = mainAppViewModel
+        )
+    }
     val scope = rememberCoroutineScope()
     CategoryDialog(
         openCategoryDialog = openCategoryDialog,
@@ -118,8 +114,8 @@ fun NotesListScreen(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        NotesListAppBar(
-            title = categoryState.value?.name ?: "All Notes",
+        TasksListAppBar(
+            title = categoryState.value?.name ?: "All Tasks",
             drawerState = drawerState,
             scope = scope,
             viewModel = viewModel,
@@ -128,7 +124,7 @@ fun NotesListScreen(
         Scaffold(
             floatingActionButton = {
                 FloatingActionButton(onClick = {
-                    navigateWhenNoteClicked(null)
+                    openTaskDialog.value = TaskForDialog(task = null)
                 }) {
                     Icon(Icons.Filled.Add, contentDescription = null)
                 }
@@ -148,7 +144,7 @@ fun NotesListScreen(
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         CategoryItem(
-                            name = "Все заметки",
+                            name = "Все категории",
                             onClick = {
                                 categoryState.value = null
                                 scope.launch {
@@ -175,24 +171,27 @@ fun NotesListScreen(
                     }
                 }
             ) {
-                NotesList(
-                    notesList = viewModel.filterNotes(
-                        notesList.value,
+                TasksList(
+                    tasksList = viewModel.filterTasks(
+                        tasksList.value,
                         searchText.value,
                         categoryState.value
                     ),
-                    selectedNotes = selectedNotes.value,
-                    onClick = { note, long ->
+                    selectedTasks = selectedTasks.value,
+                    onClick = { task, long ->
                         if (long) {
-                            viewModel.changeSelectionStateOf(note)
+                            viewModel.changeSelectionStateOf(task)
                         } else {
-                            if (selectedNotes.value.isNotEmpty()) {
-                                viewModel.changeSelectionStateOf(note)
+                            if (selectedTasks.value.isNotEmpty()) {
+                                viewModel.changeSelectionStateOf(task)
                             } else {
-                                navigateWhenNoteClicked(note.id)
+                                openTaskDialog.value = TaskForDialog(task = task)
                             }
                         }
                     },
+                    onCheckedChange = { task, done ->
+                        mainAppViewModel.insertTask(task.copy(done = done))
+                    }
                 )
             }
 
@@ -201,28 +200,33 @@ fun NotesListScreen(
 }
 
 @Composable
-private fun NotesList(
-    notesList: List<Note>,
-    selectedNotes: List<Note>,
-    onClick: (Note, Boolean) -> Unit,
+private fun TasksList(
+    tasksList: List<Task>,
+    selectedTasks: List<Task>,
+    onClick: (Task, Boolean) -> Unit,
+    onCheckedChange: (Task, Boolean) -> Unit
 ) {
     val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
     val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
     LazyColumn {
-        items(items = notesList,
+        items(items = tasksList,
             key = { it.id }
-        ) { note ->
-            NoteItem(
-                title = note.title,
-                time = timeFormatter.format(note.time),
-                date = dateFormatter.format(note.time),
-                color = Colors.colors[note.colorIndex],
-                selected = note in selectedNotes,
+        ) { task ->
+            TaskItem(
+                title = task.title,
+                time = timeFormatter.format(task.time),
+                date = dateFormatter.format(task.time),
+                color = Colors.colors[task.colorIndex],
+                done = task.done,
+                selected = task in selectedTasks,
                 onClick = {
-                    onClick(note, false)
+                    onClick(task, false)
                 },
                 onLongClick = {
-                    onClick(note, true)
+                    onClick(task, true)
+                },
+                onCheckChange = {
+                    onCheckedChange(task, it)
                 }
             )
         }
@@ -251,42 +255,16 @@ private fun CategoriesList(
     }
 }
 
-@Composable
-private fun DrawerHeader(onClickAdd: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            modifier = Modifier.padding(start = 8.dp),
-            text = "Категории",
-            color = Color.Black,
-            fontSize = 22.sp
-        )
-        IconButton(
-            modifier = Modifier.size(60.dp),
-            onClick = onClickAdd
-        ) {
-            Icon(
-                Icons.Filled.Add,
-                modifier = Modifier.size(40.dp),
-                contentDescription = null
-            )
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun NotesListAppBar(
+private fun TasksListAppBar(
     title: String,
     drawerState: DrawerState,
     scope: CoroutineScope,
-    viewModel: NotesListScreenViewModel,
+    viewModel: TasksListScreenViewModel,
     searchText: MutableState<String?>
 ) {
-    val selectedNotes = viewModel.selectedNotes.observeAsState(listOf())
+    val selectedNotes = viewModel.selectedTasks.observeAsState(listOf())
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -320,7 +298,7 @@ private fun NotesListAppBar(
             )
             if (selectedNotes.value.isNotEmpty()) {
                 val context = LocalContext.current
-                IconButton(onClick = { viewModel.deleteSelectedNotes(context) }) {
+                IconButton(onClick = { viewModel.deleteSelectedTasks(context) }) {
                     Icon(Icons.Outlined.Delete, contentDescription = null)
                 }
             }
@@ -329,3 +307,28 @@ private fun NotesListAppBar(
     }
 }
 
+@Composable
+private fun DrawerHeader(onClickAdd: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            modifier = Modifier.padding(start = 8.dp),
+            text = "Категории",
+            color = Color.Black,
+            fontSize = 22.sp
+        )
+        IconButton(
+            modifier = Modifier.size(60.dp),
+            onClick = onClickAdd
+        ) {
+            Icon(
+                Icons.Filled.Add,
+                modifier = Modifier.size(40.dp),
+                contentDescription = null
+            )
+        }
+    }
+}

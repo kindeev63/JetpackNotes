@@ -450,8 +450,6 @@ private fun NoteEditSpinnerItem(color: Color, clickable: () -> Unit = {}) {
                 .background(color)
                 .border(BorderStroke(2.dp, Color.Black))
         }
-
-
     )
 }
 

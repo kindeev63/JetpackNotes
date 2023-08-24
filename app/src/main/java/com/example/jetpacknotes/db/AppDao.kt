@@ -16,6 +16,9 @@ interface AppDao {
     @Query("SELECT * FROM table_reminders")
     fun getAllReminders(): LiveData<List<Reminder>>
 
+    @Query("SELECT * FROM table_tasks")
+    fun getAllTasks(): LiveData<List<Task>>
+
     @Query("SELECT * FROM table_categories WHERE type = :type")
     fun getCategoriesByType(type: CategoryType): LiveData<List<Category>>
 
@@ -42,4 +45,10 @@ interface AppDao {
 
     @Query("SELECT * FROM table_reminders")
     fun getAllRemindersNotLiveData(): List<Reminder>
+
+    @Insert(Task::class, onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTask(task: Task)
+
+    @Delete(Task::class)
+    suspend fun deleteTasks(tasks: List<Task>)
 }

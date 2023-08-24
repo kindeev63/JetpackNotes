@@ -24,6 +24,7 @@ import com.example.jetpacknotes.navigation.Screen
 import com.example.jetpacknotes.navigation.rememberNavigationState
 import com.example.jetpacknotes.notes.NotesListScreen
 import com.example.jetpacknotes.reminders.RemindersListScreen
+import com.example.jetpacknotes.tasks.TasksListScreen
 import com.example.jetpacknotes.viewModels.MainAppViewModel
 
 @Composable
@@ -61,7 +62,11 @@ fun BottomNavigationScreen(
                         mainAppViewModel = mainAppViewModel
                     )
                 },
-                tasksListScreenContent = {}
+                tasksListScreenContent = {
+                    TasksListScreen(
+                        mainAppViewModel = mainAppViewModel
+                    )
+                }
             )
         }
 

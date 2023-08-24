@@ -41,7 +41,7 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
             val remindersForDelete =
                 mainAppViewModel.allReminders.value?.filter { reminder ->
                     notes.any { note ->
-                        reminder.noteId == note.id
+                        reminder.itemId == note.id
                     }
                 }
             remindersForDelete?.let { remindersList ->
@@ -89,17 +89,15 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
     fun deleteCategory(category: Category) {
         mainAppViewModel.allNotes.value?.forEach { note ->
             if (note.categories.contains(category.id.toString())) {
-                mainAppViewModel.insertNote(note.copy(
-                    categories = ArrayList(note.categories.split(" | ")).apply {
-                        remove(category.id.toString())
-                    }.joinToString(" | ")
-                ))
+                mainAppViewModel.insertNote(
+                    note.copy(
+                        categories = ArrayList(note.categories.split(" | ")).apply {
+                            remove(category.id.toString())
+                        }.joinToString(" | ")
+                    )
+                )
             }
         }
         mainAppViewModel.deleteCategory(category)
-    }
-
-    fun insertCategory(category: Category) {
-        mainAppViewModel.insertCategory(category)
     }
 }

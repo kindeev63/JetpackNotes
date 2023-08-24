@@ -1,20 +1,26 @@
 package com.example.jetpacknotes.myItems
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.jetpacknotes.notes.PlaceholderTextField
 
 @Composable
 fun SearchItem(
@@ -35,15 +41,13 @@ fun SearchItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             PlaceholderTextField(
-                boxModifier = Modifier.weight(1f),
-                textModifier = Modifier.fillMaxWidth(),
                 value = searchText.value ?: "",
                 onValueChange = {
                     searchText.value = it
                 },
                 singleLine = true,
-                textStyle = TextStyle.Default.copy(fontSize = 18.sp),
-                hintText = "Введите текст..."
+                hintText = "Введите текст...",
+                boxModifier = Modifier.weight(1f)
             )
             IconButton(
                 modifier = Modifier.alpha(0.5f),

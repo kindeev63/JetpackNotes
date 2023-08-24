@@ -5,22 +5,20 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.io.Serializable
 
-@Entity(tableName = "table_reminders")
-data class Reminder(
+@Entity(tableName = "table_tasks")
+data class Task(
     @PrimaryKey(autoGenerate = false)
     val id: Int = 0,
-    @ColumnInfo(name = "title")
+    @ColumnInfo(name = "text")
     var title: String,
     @ColumnInfo(name = "description")
     var description: String,
     @ColumnInfo(name = "time")
     var time: Long,
-    @ColumnInfo(name = "itemId")
-    var itemId: Int?,
-    @ColumnInfo(name = "packageName")
-    var packageName: String,
-    @ColumnInfo(name = "soundType")
-    var sound: Boolean,
-    @ColumnInfo(name = "action")
-    var action: ReminderAction = ReminderAction.OpenApp
+    @ColumnInfo(name = "done")
+    var done: Boolean,
+    @ColumnInfo(name = "categories")
+    var categories: String,
+    @ColumnInfo(name="colorIndex")
+    var colorIndex: Int,
 ): Serializable

@@ -1,3 +1,3 @@
 package com.example.jetpacknotes.db
 
-enum class ReminderAction {OpenNote, OpenApp}
+enum class ReminderAction {OpenNote, OpenTask, OpenApp}
