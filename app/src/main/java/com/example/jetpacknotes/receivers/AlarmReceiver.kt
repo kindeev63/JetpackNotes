@@ -27,13 +27,13 @@ class AlarmReceiver : BroadcastReceiver() {
 
             ReminderAction.OpenNote -> {
                 Intent(context, MainActivity::class.java).apply {
-                    reminder.itemId?.let { putExtra("noteId", reminder.itemId) }
+                    reminder.noteId?.let { putExtra("noteId", reminder.noteId) }
                 }
             }
 
             ReminderAction.OpenTask -> {
                 Intent(context, MainActivity::class.java).apply {
-                    reminder.itemId?.let { putExtra("taskId", reminder.itemId) }
+                    reminder.taskId?.let { putExtra("taskId", reminder.taskId) }
                 }
             }
         }

@@ -80,5 +80,12 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     fun deleteTasks(tasks: List<Task>) = viewModelScope.launch {
         appDao.deleteTasks(tasks)
     }
+
+    suspend fun getTaskById(taskId: Int, function: (Task?) -> Unit) {
+        viewModelScope.launch {
+            val task = appDao.getTaskById(taskId)
+            function(task)
+        }
+    }
 }
 

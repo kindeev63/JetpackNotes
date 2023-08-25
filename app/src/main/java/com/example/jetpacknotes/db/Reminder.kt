@@ -15,8 +15,10 @@ data class Reminder(
     var description: String,
     @ColumnInfo(name = "time")
     var time: Long,
-    @ColumnInfo(name = "itemId")
-    var itemId: Int?,
+    @ColumnInfo(name = "noteId")
+    var noteId: Int?,
+    @ColumnInfo(name = "taskId")
+    var taskId: Int?,
     @ColumnInfo(name = "packageName")
     var packageName: String,
     @ColumnInfo(name = "soundType")

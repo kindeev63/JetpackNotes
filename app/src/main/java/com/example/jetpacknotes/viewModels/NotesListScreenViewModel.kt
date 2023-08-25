@@ -41,7 +41,7 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
             val remindersForDelete =
                 mainAppViewModel.allReminders.value?.filter { reminder ->
                     notes.any { note ->
-                        reminder.itemId == note.id
+                        reminder.noteId == note.id
                     }
                 }
             remindersForDelete?.let { remindersList ->
@@ -59,7 +59,10 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val i = Intent(context, AlarmReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
-            context, reminderId, i, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_CANCEL_CURRENT
+            context,
+            reminderId,
+            i,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_CANCEL_CURRENT
         )
         alarmManager.cancel(pendingIntent)
     }
@@ -74,7 +77,12 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
         return Category(categoryId, "", CategoryType.Note)
     }
 
-    fun clickOnCategory(category: Category, long: Boolean, state: MutableState<Category?>, openDialog: MutableState<Category?>) {
+    fun clickOnCategory(
+        category: Category,
+        long: Boolean,
+        state: MutableState<Category?>,
+        openDialog: MutableState<Category?>
+    ) {
         if (long) {
             openDialog.value = category.copy()
         } else {
@@ -83,7 +91,11 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
     }
 
     fun filterNotes(notes: List<Note>, searchText: String?, category: Category?): List<Note> {
-        return notes.filter { note -> (if (category != null) category.id.toString() in note.categories.split(" | ") else true) && note.title.lowercase().contains(searchText?.lowercase() ?: "")}
+        return notes.filter { note ->
+            (if (category != null) category.id.toString() in note.categories.split(
+                " | "
+            ) else true) && note.title.lowercase().contains(searchText?.lowercase() ?: "")
+        }
     }
 
     fun deleteCategory(category: Category) {

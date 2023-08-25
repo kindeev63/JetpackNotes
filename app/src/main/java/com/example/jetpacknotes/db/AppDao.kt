@@ -51,4 +51,7 @@ interface AppDao {
 
     @Delete(Task::class)
     suspend fun deleteTasks(tasks: List<Task>)
+
+    @Query("SELECT * FROM table_tasks WHERE id = :id")
+    suspend fun getTaskById(id: Int): Task?
 }

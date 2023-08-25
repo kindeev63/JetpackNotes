@@ -66,6 +66,10 @@ fun TaskItem(
                         topStart = 8.dp, bottomStart = 8.dp
                     )
                 )
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onLongClick
+                )
                 .background(Color(-2500135))
 
         ) {
@@ -85,11 +89,7 @@ fun TaskItem(
                 )
                 Row(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .combinedClickable(
-                            onClick = onClick,
-                            onLongClick = onLongClick
-                        ),
+                        .fillMaxSize(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Spacer(modifier = Modifier.width(10.dp))

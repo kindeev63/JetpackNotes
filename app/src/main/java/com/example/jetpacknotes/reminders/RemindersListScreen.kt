@@ -298,22 +298,27 @@ private fun RemindersList(
                 date = dateFormatter.format(reminder.time),
                 selected = reminder in selectedReminders,
                 actionIcon =
-                if (reminder.action == ReminderAction.OpenNote) {
-                    LocalContext.current.getDrawable(R.drawable.ic_note)!!
-                } else {
-                    val packageName =
-                        if (isAppInstalled(reminder.packageName, LocalContext.current)) {
-                            reminder.packageName
-                        } else {
-                            mainAppViewModel.insertReminder(reminder.copy(packageName = LocalContext.current.packageName))
-                            LocalContext.current.packageName
-                        }
-                    LocalContext.current.packageManager.getApplicationIcon(
-                        LocalContext.current.packageManager.getApplicationInfo(
-                            packageName, PackageManager.GET_META_DATA
+                when (reminder.action) {
+                    ReminderAction.OpenApp -> {
+                        val packageName =
+                            if (isAppInstalled(reminder.packageName, LocalContext.current)) {
+                                reminder.packageName
+                            } else {
+                                mainAppViewModel.insertReminder(reminder.copy(packageName = LocalContext.current.packageName))
+                                LocalContext.current.packageName
+                            }
+                        LocalContext.current.packageManager.getApplicationIcon(
+                            LocalContext.current.packageManager.getApplicationInfo(
+                                packageName, PackageManager.GET_META_DATA
+                            )
                         )
-                    )
-
+                    }
+                    ReminderAction.OpenNote -> {
+                        LocalContext.current.getDrawable(R.drawable.ic_note)!!
+                    }
+                    ReminderAction.OpenTask -> {
+                        LocalContext.current.getDrawable(R.drawable.ic_task)!!
+                    }
                 },
                 sound = reminder.sound,
                 onClick = {

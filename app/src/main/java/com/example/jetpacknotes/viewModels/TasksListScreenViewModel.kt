@@ -46,7 +46,12 @@ class TasksListScreenViewModel(
         return Category(categoryId, "", CategoryType.Task)
     }
 
-    fun clickOnCategory(category: Category, long: Boolean, state: MutableState<Category?>, openDialog: MutableState<Category?>) {
+    fun clickOnCategory(
+        category: Category,
+        long: Boolean,
+        state: MutableState<Category?>,
+        openDialog: MutableState<Category?>
+    ) {
         if (long) {
             openDialog.value = category.copy()
         } else {
@@ -55,7 +60,11 @@ class TasksListScreenViewModel(
     }
 
     fun filterTasks(tasks: List<Task>, searchText: String?, category: Category?): List<Task> {
-        return tasks.filter { task -> (if (category != null) category.id.toString() in task.categories.split(" | ") else true) && task.title.lowercase().contains(searchText?.lowercase() ?: "")}
+        return tasks.filter { task ->
+            (if (category != null) category.id.toString() in task.categories.split(
+                " | "
+            ) else true) && task.title.lowercase().contains(searchText?.lowercase() ?: "")
+        }
     }
 
     fun changeSelectionStateOf(task: Task) {
@@ -77,7 +86,7 @@ class TasksListScreenViewModel(
             val remindersForDelete =
                 mainAppViewModel.allReminders.value?.filter { reminder ->
                     tasks.any { task ->
-                        reminder.itemId == task.id
+                        reminder.taskId == task.id
                     }
                 }
             remindersForDelete?.let { remindersList ->
@@ -95,7 +104,10 @@ class TasksListScreenViewModel(
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val i = Intent(context, AlarmReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
-            context, reminderId, i, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_CANCEL_CURRENT
+            context,
+            reminderId,
+            i,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_CANCEL_CURRENT
         )
         alarmManager.cancel(pendingIntent)
     }

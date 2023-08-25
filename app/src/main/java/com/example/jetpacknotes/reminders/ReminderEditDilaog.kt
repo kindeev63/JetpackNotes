@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.Uri
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateIntAsState
@@ -18,6 +19,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +42,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -81,10 +85,12 @@ import androidx.core.graphics.drawable.toBitmap
 import com.example.jetpacknotes.Colors
 import com.example.jetpacknotes.R
 import com.example.jetpacknotes.db.Note
+import com.example.jetpacknotes.db.Task
 import com.example.jetpacknotes.myItems.AppItem
 import com.example.jetpacknotes.myItems.ApplicationData
 import com.example.jetpacknotes.myItems.DatePickerDialog
 import com.example.jetpacknotes.myItems.NoteItem
+import com.example.jetpacknotes.myItems.TaskItem
 import com.example.jetpacknotes.myItems.TimePickerDialog
 import com.example.jetpacknotes.receivers.AlarmReceiver
 import kotlinx.coroutines.launch
@@ -201,13 +207,20 @@ private fun DialogContent(reminder: MutableState<Reminder>, mainAppViewModel: Ma
                 .fillMaxWidth()
                 .height(70.dp)
         ) {
-            if (reminder.value.action == ReminderAction.OpenApp) {
-                AppCard(reminder = reminder)
-            } else {
-                NoteCard(reminder = reminder, mainAppViewModel = mainAppViewModel)
+            when (reminder.value.action) {
+                ReminderAction.OpenApp -> {
+                    AppCard(reminder = reminder)
+                }
+
+                ReminderAction.OpenNote -> {
+                    NoteCard(reminder = reminder, mainAppViewModel = mainAppViewModel)
+                }
+
+                ReminderAction.OpenTask -> {
+                    TaskCard(reminder = reminder, mainAppViewModel = mainAppViewModel)
+                }
             }
         }
-
     }
 }
 
@@ -338,6 +351,7 @@ private fun ReminderActionSpinner(
         var expanded by remember {
             mutableStateOf(false)
         }
+        val context = LocalContext.current
         val allNotes = mainAppViewModel.allNotes.observeAsState(emptyList())
         val allTasks = mainAppViewModel.allTasks.observeAsState(emptyList())
         Text(text = "Action:")
@@ -369,6 +383,8 @@ private fun ReminderActionSpinner(
                 ReminderActionSpinnerItem(text = "Open Note") {
                     if (allNotes.value.isNotEmpty()) {
                         reminder.value = reminder.value.copy(action = ReminderAction.OpenNote)
+                    } else {
+                        Toast.makeText(context, "Нет заметок", Toast.LENGTH_SHORT).show()
                     }
                     expanded = false
                 }
@@ -376,6 +392,8 @@ private fun ReminderActionSpinner(
                 ReminderActionSpinnerItem(text = "Open Task") {
                     if (allTasks.value.isNotEmpty()) {
                         reminder.value = reminder.value.copy(action = ReminderAction.OpenTask)
+                    } else {
+                        Toast.makeText(context, "Нет задач", Toast.LENGTH_SHORT).show()
                     }
                     expanded = false
                 }
@@ -597,7 +615,7 @@ private fun NoteCard(reminder: MutableState<Reminder>, mainAppViewModel: MainApp
         mutableStateOf(false)
     }
     scope.launch {
-        reminder.value.itemId?.let { noteId ->
+        reminder.value.noteId?.let { noteId ->
             mainAppViewModel.getNoteById(noteId) {
                 noteState.value = it
             }
@@ -725,13 +743,179 @@ private fun PickNoteDialog(
                             color = Colors.colors[note.colorIndex],
                             selected = false,
                             onClick = {
-                                reminder.value = reminder.value.copy(itemId = note.id)
+                                reminder.value = reminder.value.copy(noteId = note.id)
                                 open.value = false
                             },
                             onLongClick = {
-                                reminder.value = reminder.value.copy(itemId = note.id)
+                                reminder.value = reminder.value.copy(noteId = note.id)
                                 open.value = false
                             }
+                        )
+                    }
+                }
+            }
+            Row(
+                horizontalArrangement = Arrangement.Center
+            ) {
+                TextButton(onClick = { open.value = false }) {
+                    Text(text = "cancel")
+                }
+            }
+        }
+
+    }
+}
+
+@SuppressLint("CoroutineCreationDuringComposition")
+@Composable
+private fun TaskCard(reminder: MutableState<Reminder>, mainAppViewModel: MainAppViewModel) {
+    val scope = rememberCoroutineScope()
+    val taskState = rememberSaveable {
+        mutableStateOf<Task?>(null)
+    }
+    val openTaskDialog = rememberSaveable {
+        mutableStateOf(false)
+    }
+    scope.launch {
+        reminder.value.taskId?.let { taskId ->
+            mainAppViewModel.getTaskById(taskId) {
+                taskState.value = it
+            }
+        }
+    }
+    if (openTaskDialog.value) {
+        PickTaskDialog(
+            open = openTaskDialog,
+            reminder = reminder,
+            mainAppViewModel = mainAppViewModel
+        )
+    }
+    Card(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable {
+                openTaskDialog.value = true
+            }
+    ) {
+        val task = taskState.value
+        if (task != null) {
+            val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(70.dp)
+                    .clip(
+                        shape = RoundedCornerShape(
+                            topStart = 8.dp, bottomStart = 8.dp
+                        )
+                    )
+                    .background(Color(-2500135))
+
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = Color(Colors.colors[task.colorIndex].primary),
+                            uncheckedColor = Color(Colors.colors[task.colorIndex].primary),
+                        ),
+                        checked = task.done,
+                        onCheckedChange = {}
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            modifier = Modifier.weight(1f),
+                            text = task.title,
+                            color = Color.Black,
+                            maxLines = 1
+                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(IntrinsicSize.Min)
+                                .padding(end = 16.dp),
+                            verticalArrangement = Arrangement.Bottom,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = timeFormatter.format(task.time) ?: "",
+                                fontSize = 16.sp,
+                                color = Color.Black
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = dateFormatter.format(task.time) ?: "",
+                                fontSize = 12.sp,
+                                color = Color.Black
+                            )
+                            Spacer(modifier = Modifier.height(5.dp))
+                        }
+                    }
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(-2500135))
+            )
+        }
+    }
+}
+
+@Composable
+private fun PickTaskDialog(
+    open: MutableState<Boolean>,
+    reminder: MutableState<Reminder>,
+    mainAppViewModel: MainAppViewModel
+) {
+    val screenWidthDp = getScreenWidthDp()
+    val allTasks = mainAppViewModel.allTasks.observeAsState(emptyList())
+    Dialog(onDismissRequest = { open.value = false }) {
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(5.dp))
+                .background(Color.White)
+                .padding(5.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height((screenWidthDp * 1.5).dp)
+            ) {
+                LazyColumn {
+                    items(
+                        items = allTasks.value,
+                        key = { it.id }
+                    ) { task ->
+                        val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+                        val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+                        TaskItem(
+                            title = task.title,
+                            time = timeFormatter.format(task.time),
+                            date = dateFormatter.format(task.time),
+                            color = Colors.colors[task.colorIndex],
+                            done = task.done,
+                            selected = false,
+                            onClick = {
+                                reminder.value = reminder.value.copy(taskId = task.id)
+                                open.value = false
+                            },
+                            onLongClick = {
+                                reminder.value = reminder.value.copy(taskId = task.id)
+                                open.value = false
+                                          },
+                            onCheckChange = {},
                         )
                     }
                 }
@@ -756,14 +940,15 @@ private fun createReminder(mainAppViewModel: MainAppViewModel, packageName: Stri
         reminderId++
     }
     return Reminder(
-        reminderId,
-        "",
-        "",
-        LocalDateTime.now().atZone(ZoneId.systemDefault()).withSecond(0).toInstant().toEpochMilli(),
-        null,
-        packageName,
-        true,
-        ReminderAction.OpenApp
+        id = reminderId,
+        title = "",
+        description = "",
+        time = LocalDateTime.now().atZone(ZoneId.systemDefault()).withSecond(0).toInstant().toEpochMilli(),
+        noteId = null,
+        taskId = null,
+        packageName = packageName,
+        sound = true,
+        action = ReminderAction.OpenApp
     )
 }
 
