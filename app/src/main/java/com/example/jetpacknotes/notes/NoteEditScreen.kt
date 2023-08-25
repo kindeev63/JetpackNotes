@@ -56,6 +56,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -63,11 +64,17 @@ import com.example.jetpacknotes.Colors
 import com.example.jetpacknotes.R
 import com.example.jetpacknotes.db.Category
 import com.example.jetpacknotes.db.Note
+import com.example.jetpacknotes.db.Reminder
+import com.example.jetpacknotes.db.ReminderAction
+import com.example.jetpacknotes.reminders.ReminderEditDialog
+import com.example.jetpacknotes.reminders.ReminderForDialog
 import com.example.jetpacknotes.viewModels.MainAppViewModel
 import com.example.jetpacknotes.viewModels.NoteEditScreenViewModel
 import com.example.jetpacknotes.viewModels.NoteEditScreenViewModelFactory
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.ArrayList
 import java.util.Calendar
 
@@ -102,7 +109,7 @@ fun NoteEditScreen(
         val allCategories = mainAppViewModel.categoryOfNotes.observeAsState(emptyList())
         if (note == null) {
             scope.launch {
-                if (noteId==null) {
+                if (noteId == null) {
                     viewModel.createNote {
                         note = it
                         viewModel.addNoteState(
@@ -149,6 +156,13 @@ fun NoteEditScreen(
             }
 
         }
+        val reminderEditDialog = rememberSaveable {
+            mutableStateOf<ReminderForDialog?>(null)
+        }
+        val context = LocalContext.current
+        reminderEditDialog.value?.let {
+            ReminderEditDialog(reminderState = reminderEditDialog, mainAppViewModel = mainAppViewModel)
+        }
         NoteEditAppBar(
             mainAppViewModel = mainAppViewModel,
             onBackPressed = {
@@ -170,7 +184,38 @@ fun NoteEditScreen(
             onRedoPressed = {
                 viewModel.redoState()
             },
-            onAddReminderPressed = {},
+            onAddReminderPressed = {
+                saveNote(
+                    mainAppViewModel = mainAppViewModel,
+                    note = note!!,
+                    title = currentNoteState.value.title.text,
+                    text = currentNoteState.value.text.text,
+                    colorIndex = currentNoteState.value.colorIndex,
+                    categories = currentNoteState.value.categories
+                ) {
+                    val idsList = (mainAppViewModel.allReminders.value ?: emptyList()).map { it.id }
+                    var reminderId = 0
+                    while (true) {
+                        if (reminderId !in idsList) break
+                        reminderId++
+                    }
+                    reminderEditDialog.value = ReminderForDialog(
+                        Reminder(
+                            id = reminderId,
+                            title = "",
+                            description = "",
+                            time = LocalDateTime.now().atZone(ZoneId.systemDefault()).withSecond(0).toInstant()
+                                .toEpochMilli(),
+                            noteId = note?.id,
+                            taskId = null,
+                            packageName = context.packageName,
+                            sound = true,
+                            action = ReminderAction.OpenNote
+                        )
+                    )
+                }
+
+            },
             onCategoryPressed = {
                 openDialog.value = true
             },
@@ -479,42 +524,48 @@ private fun saveNote(
 @Composable
 fun IconButtonWithOnTouch(iconResourceId: Int, action: () -> Unit) {
     var isPressed by rememberSaveable { mutableStateOf(false) }
-    val colorTransparent by animateColorAsState(targetValue = Color.Transparent, animationSpec = spring())
-    val colorGray by animateColorAsState(targetValue = Color.Black.copy(alpha = 0.2f), animationSpec = spring())
+    val colorTransparent by animateColorAsState(
+        targetValue = Color.Transparent,
+        animationSpec = spring()
+    )
+    val colorGray by animateColorAsState(
+        targetValue = Color.Black.copy(alpha = 0.2f),
+        animationSpec = spring()
+    )
     var color by remember {
         mutableStateOf(colorTransparent)
     }
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(color = color, shape = CircleShape)
-                .pointerInteropFilter(
-                    onTouchEvent = { event ->
-                        when (event.action) {
-                            MotionEvent.ACTION_DOWN -> {
-                                isPressed = true
-                                color = colorGray
-                                true
-                            }
-
-                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                                isPressed = false
-                                color = colorTransparent
-                                true
-                            }
-
-                            else -> false
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(color = color, shape = CircleShape)
+            .pointerInteropFilter(
+                onTouchEvent = { event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            isPressed = true
+                            color = colorGray
+                            true
                         }
+
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            isPressed = false
+                            color = colorTransparent
+                            true
+                        }
+
+                        else -> false
                     }
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(id = iconResourceId),
-                contentDescription = null,
-                tint = Color.White
-            )
+                }
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(id = iconResourceId),
+            contentDescription = null,
+            tint = Color.White
+        )
     }
 
     var delayInMillis = rememberSaveable {
