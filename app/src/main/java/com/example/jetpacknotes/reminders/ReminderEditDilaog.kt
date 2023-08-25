@@ -14,12 +14,9 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateIntAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,7 +47,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -90,6 +86,7 @@ import com.example.jetpacknotes.myItems.AppItem
 import com.example.jetpacknotes.myItems.ApplicationData
 import com.example.jetpacknotes.myItems.DatePickerDialog
 import com.example.jetpacknotes.myItems.NoteItem
+import com.example.jetpacknotes.myItems.PlaceholderTextField
 import com.example.jetpacknotes.myItems.TaskItem
 import com.example.jetpacknotes.myItems.TimePickerDialog
 import com.example.jetpacknotes.receivers.AlarmReceiver
@@ -612,6 +609,20 @@ private fun PickAppDialog(open: MutableState<Boolean>, reminder: MutableState<Re
                 .background(Color.White)
                 .padding(5.dp)
         ) {
+            var searchText by rememberSaveable {
+                mutableStateOf("")
+            }
+                PlaceholderTextField(
+                    boxModifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    value = searchText,
+                    onValueChange = {
+                        searchText = it
+                    },
+                    hintText = "Search..."
+                )
+            Divider()
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -619,7 +630,7 @@ private fun PickAppDialog(open: MutableState<Boolean>, reminder: MutableState<Re
             ) {
                 LazyColumn {
                     items(
-                        items = allApps,
+                        items = allApps.filterAppsByName(searchText),
                         key = { it.packageName }
                     ) { applicationData ->
                         AppItem(applicationData = applicationData) {
@@ -640,6 +651,10 @@ private fun PickAppDialog(open: MutableState<Boolean>, reminder: MutableState<Re
         }
 
     }
+}
+
+private fun List<ApplicationData>.filterAppsByName(searchText: String): List<ApplicationData> {
+    return this.filter{it.name.lowercase().contains(searchText.lowercase())}
 }
 
 @SuppressLint("CoroutineCreationDuringComposition")
@@ -762,6 +777,20 @@ private fun PickNoteDialog(
                 .background(Color.White)
                 .padding(5.dp)
         ) {
+            var searchText by rememberSaveable {
+                mutableStateOf("")
+            }
+            PlaceholderTextField(
+                boxModifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                value = searchText,
+                onValueChange = {
+                    searchText = it
+                },
+                hintText = "Search..."
+            )
+            Divider()
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -769,7 +798,7 @@ private fun PickNoteDialog(
             ) {
                 LazyColumn {
                     items(
-                        items = allNotes.value,
+                        items = allNotes.value.filterNotesByTitle(searchText),
                         key = { it.id }
                     ) { note ->
                         val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -803,6 +832,12 @@ private fun PickNoteDialog(
 
     }
 }
+
+private fun List<Note>.filterNotesByTitle(searchText: String): List<Note> {
+    return this.filter {it.title.lowercase().contains(searchText.lowercase())}
+}
+
+
 
 @SuppressLint("CoroutineCreationDuringComposition")
 @Composable
@@ -926,6 +961,20 @@ private fun PickTaskDialog(
                 .background(Color.White)
                 .padding(5.dp)
         ) {
+            var searchText by rememberSaveable {
+                mutableStateOf("")
+            }
+            PlaceholderTextField(
+                boxModifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                value = searchText,
+                onValueChange = {
+                    searchText = it
+                },
+                hintText = "Search..."
+            )
+            Divider()
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -933,7 +982,7 @@ private fun PickTaskDialog(
             ) {
                 LazyColumn {
                     items(
-                        items = allTasks.value,
+                        items = allTasks.value.filterTasksByTitle(searchText),
                         key = { it.id }
                     ) { task ->
                         val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -968,6 +1017,10 @@ private fun PickTaskDialog(
         }
 
     }
+}
+
+private fun List<Task>.filterTasksByTitle(searchText: String): List<Task> {
+    return this.filter{it.title.lowercase().contains(searchText.lowercase())}
 }
 
 private fun createReminder(mainAppViewModel: MainAppViewModel, packageName: String): Reminder {
