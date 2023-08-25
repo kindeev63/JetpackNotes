@@ -24,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -93,8 +95,9 @@ fun TaskItem(
                     Text(
                         modifier = Modifier.fillMaxWidth(),
                         text = title,
-                        color = Color.Black,
-                        maxLines = 1
+                        color = if (done) Color.Gray else Color.Black,
+                        maxLines = 1,
+                        textDecoration = if (done) TextDecoration.LineThrough else TextDecoration.None,
                     )
                 }
 

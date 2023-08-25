@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,8 +56,6 @@ import com.example.jetpacknotes.viewModels.TasksListScreenViewModel
 import com.example.jetpacknotes.viewModels.TasksListScreenViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -204,8 +203,10 @@ private fun TasksList(
     onClick: (Task, Boolean) -> Unit,
     onCheckedChange: (Task, Boolean) -> Unit
 ) {
+    val doneTasks = tasksList.filter { it.done }
+    val notDoneTasks = tasksList.filter { !it.done }
     LazyColumn {
-        items(items = tasksList,
+        items(items = notDoneTasks,
             key = { it.id }
         ) { task ->
             TaskItem(
@@ -224,6 +225,31 @@ private fun TasksList(
                 }
             )
         }
+        if (doneTasks.isNotEmpty()) {
+            item{
+                Divider()
+            }
+            items(items = doneTasks,
+                key = { it.id }
+            ) { task ->
+                TaskItem(
+                    title = task.title,
+                    color = Colors.colors[task.colorIndex],
+                    done = task.done,
+                    selected = task in selectedTasks,
+                    onClick = {
+                        onClick(task, false)
+                    },
+                    onLongClick = {
+                        onClick(task, true)
+                    },
+                    onCheckChange = {
+                        onCheckedChange(task, it)
+                    }
+                )
+            }
+        }
+
     }
 }
 
