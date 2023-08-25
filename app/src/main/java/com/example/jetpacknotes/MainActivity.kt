@@ -3,16 +3,19 @@ package com.example.jetpacknotes
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.example.jetpacknotes.db.Note
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.example.jetpacknotes.notes.NoteEditScreen
-import com.example.jetpacknotes.notes.NotesListScreen
-import java.util.Calendar
+import com.example.jetpacknotes.tasks.TaskEditDialog
+import com.example.jetpacknotes.tasks.TaskForDialog
+import com.example.jetpacknotes.viewModels.MainAppViewModel
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,8 +31,29 @@ class MainActivity : ComponentActivity() {
                     finish()
                 }
             } else {
+                if (intent.hasExtra("taskId")) {
+                    OpenTask(taskId = intent.getIntExtra("taskId", 0), mainAppViewModel = mainAppViewModel)
+                }
                 MainScreen(mainAppViewModel = mainAppViewModel)
             }
+        }
+    }
+
+    @Composable
+    private fun OpenTask(taskId: Int, mainAppViewModel: MainAppViewModel) {
+        val taskState = rememberSaveable {
+            mutableStateOf<TaskForDialog?>(null)
+        }
+        val scope = rememberCoroutineScope()
+        LaunchedEffect(true) {
+            scope.launch {
+                mainAppViewModel.getTaskById(taskId) {
+                    taskState.value = TaskForDialog(it)
+                }
+            }
+        }
+        taskState.value?.task?.let {
+            TaskEditDialog(taskState = taskState, mainAppViewModel = mainAppViewModel)
         }
     }
 

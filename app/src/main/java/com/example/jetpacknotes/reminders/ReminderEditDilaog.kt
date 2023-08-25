@@ -137,23 +137,61 @@ fun ReminderEditDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 DialogContent(reminder = reminder, mainAppViewModel = mainAppViewModel)
-                Row(
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    val context = LocalContext.current
-                    TextButton(onClick = { reminderState.value = null }) {
-                        Text(text = "cancel")
-                    }
-                    TextButton(onClick = {
-                        mainAppViewModel.insertReminder(reminder.value) {
-                            setAlarm(reminder.value, context)
-                            reminderState.value = null
+                ActionButtons(
+                    reminderState = reminderState,
+                    reminder = reminder,
+                    mainAppViewModel = mainAppViewModel
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionButtons(
+    reminderState: MutableState<ReminderForDialog?>,
+    reminder: MutableState<Reminder>,
+    mainAppViewModel: MainAppViewModel
+) {
+    val context = LocalContext.current
+    Row(
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        val context = LocalContext.current
+        TextButton(onClick = { reminderState.value = null }) {
+            Text(text = "cancel")
+        }
+        TextButton(onClick = {
+            if (
+                when (reminder.value.action) {
+                    ReminderAction.OpenApp -> true
+                    ReminderAction.OpenNote -> {
+                        if (reminder.value.noteId != null) {
+                            true
+                        } else {
+                            Toast.makeText(context, "Выберите заметку", Toast.LENGTH_SHORT).show()
+                            false
                         }
-                    }) {
-                        Text(text = "save")
+                    }
+
+                    ReminderAction.OpenTask -> {
+                        if (reminder.value.taskId != null) {
+                            true
+                        } else {
+                            Toast.makeText(context, "Выберите задачу", Toast.LENGTH_SHORT).show()
+                            false
+                        }
                     }
                 }
+            ) {
+                mainAppViewModel.insertReminder(reminder.value) {
+                    setAlarm(reminder.value, context)
+                    reminderState.value = null
+                }
             }
+
+        }) {
+            Text(text = "save")
         }
     }
 }
@@ -914,7 +952,7 @@ private fun PickTaskDialog(
                             onLongClick = {
                                 reminder.value = reminder.value.copy(taskId = task.id)
                                 open.value = false
-                                          },
+                            },
                             onCheckChange = {},
                         )
                     }
@@ -943,7 +981,8 @@ private fun createReminder(mainAppViewModel: MainAppViewModel, packageName: Stri
         id = reminderId,
         title = "",
         description = "",
-        time = LocalDateTime.now().atZone(ZoneId.systemDefault()).withSecond(0).toInstant().toEpochMilli(),
+        time = LocalDateTime.now().atZone(ZoneId.systemDefault()).withSecond(0).toInstant()
+            .toEpochMilli(),
         noteId = null,
         taskId = null,
         packageName = packageName,
