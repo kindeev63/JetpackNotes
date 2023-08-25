@@ -50,8 +50,6 @@ import com.example.jetpacknotes.myItems.CategoryDialog
 import com.example.jetpacknotes.myItems.CategoryItem
 import com.example.jetpacknotes.myItems.SearchItem
 import com.example.jetpacknotes.myItems.TaskItem
-import com.example.jetpacknotes.reminders.ReminderEditDialog
-import com.example.jetpacknotes.reminders.ReminderForDialog
 import com.example.jetpacknotes.viewModels.MainAppViewModel
 import com.example.jetpacknotes.viewModels.TasksListScreenViewModel
 import com.example.jetpacknotes.viewModels.TasksListScreenViewModelFactory
@@ -206,16 +204,12 @@ private fun TasksList(
     onClick: (Task, Boolean) -> Unit,
     onCheckedChange: (Task, Boolean) -> Unit
 ) {
-    val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
     LazyColumn {
         items(items = tasksList,
             key = { it.id }
         ) { task ->
             TaskItem(
                 title = task.title,
-                time = timeFormatter.format(task.time),
-                date = dateFormatter.format(task.time),
                 color = Colors.colors[task.colorIndex],
                 done = task.done,
                 selected = task in selectedTasks,

@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -47,7 +46,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -185,7 +183,7 @@ private fun TitleAndDone(task: MutableState<Task>) {
                 task.value = task.value.copy(title = title)
             },
             hintText = "Заголовок",
-            boxModifier = Modifier
+            modifier = Modifier
                 .height(50.dp)
                 .weight(1f)
         )
@@ -249,8 +247,6 @@ private fun createTask(mainAppViewModel: MainAppViewModel): Task {
         id = taskId,
         title = "",
         description = "",
-        time = LocalDateTime.now().atZone(ZoneId.systemDefault()).withSecond(0).toInstant()
-            .toEpochMilli(),
         done = false,
         categories = "",
         colorIndex = 0

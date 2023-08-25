@@ -13,8 +13,6 @@ data class Task(
     var title: String,
     @ColumnInfo(name = "description")
     var description: String,
-    @ColumnInfo(name = "time")
-    var time: Long,
     @ColumnInfo(name = "done")
     var done: Boolean,
     @ColumnInfo(name = "categories")

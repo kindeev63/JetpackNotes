@@ -7,12 +7,8 @@ import android.content.Intent
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.jetpacknotes.db.Category
-import com.example.jetpacknotes.db.Note
 import com.example.jetpacknotes.db.Reminder
-import com.example.jetpacknotes.db.ReminderAction
 import com.example.jetpacknotes.receivers.AlarmReceiver
-import java.util.Calendar
 
 class RemindersListScreenViewModel(private val mainAppViewModel: MainAppViewModel): ViewModel() {
     private val _selectedReminders = MutableLiveData<List<Reminder>>(emptyList())

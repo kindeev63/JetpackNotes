@@ -150,7 +150,6 @@ private fun ActionButtons(
     reminder: MutableState<Reminder>,
     mainAppViewModel: MainAppViewModel
 ) {
-    val context = LocalContext.current
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
@@ -613,7 +612,7 @@ private fun PickAppDialog(open: MutableState<Boolean>, reminder: MutableState<Re
                 mutableStateOf("")
             }
                 PlaceholderTextField(
-                    boxModifier = Modifier
+                    modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
                     value = searchText,
@@ -781,7 +780,7 @@ private fun PickNoteDialog(
                 mutableStateOf("")
             }
             PlaceholderTextField(
-                boxModifier = Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
                 value = searchText,
@@ -872,8 +871,6 @@ private fun TaskCard(reminder: MutableState<Reminder>, mainAppViewModel: MainApp
     ) {
         val task = taskState.value
         if (task != null) {
-            val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
-            val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -907,32 +904,11 @@ private fun TaskCard(reminder: MutableState<Reminder>, mainAppViewModel: MainApp
                     ) {
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxWidth(),
                             text = task.title,
                             color = Color.Black,
                             maxLines = 1
                         )
-                        Column(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .width(IntrinsicSize.Min)
-                                .padding(end = 16.dp),
-                            verticalArrangement = Arrangement.Bottom,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = timeFormatter.format(task.time) ?: "",
-                                fontSize = 16.sp,
-                                color = Color.Black
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = dateFormatter.format(task.time) ?: "",
-                                fontSize = 12.sp,
-                                color = Color.Black
-                            )
-                            Spacer(modifier = Modifier.height(5.dp))
-                        }
                     }
                 }
             }
@@ -965,7 +941,7 @@ private fun PickTaskDialog(
                 mutableStateOf("")
             }
             PlaceholderTextField(
-                boxModifier = Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
                 value = searchText,
@@ -985,12 +961,8 @@ private fun PickTaskDialog(
                         items = allTasks.value.filterTasksByTitle(searchText),
                         key = { it.id }
                     ) { task ->
-                        val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
-                        val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
                         TaskItem(
                             title = task.title,
-                            time = timeFormatter.format(task.time),
-                            date = dateFormatter.format(task.time),
                             color = Colors.colors[task.colorIndex],
                             done = task.done,
                             selected = false,

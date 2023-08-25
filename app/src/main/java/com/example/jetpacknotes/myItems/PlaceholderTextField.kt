@@ -1,7 +1,6 @@
 package com.example.jetpacknotes.myItems
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
@@ -17,15 +16,15 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun PlaceholderTextField(
+    modifier: Modifier = Modifier,
     value: String,
     onValueChange: (String) -> Unit,
     hintText: String = "",
     singleLine: Boolean = false,
-    boxModifier: Modifier = Modifier,
     fontSize: TextUnit = 18.sp
 ) {
     Box(
-        modifier = boxModifier,
+        modifier = modifier,
         contentAlignment = Alignment.CenterStart
     ) {
         BasicTextField(

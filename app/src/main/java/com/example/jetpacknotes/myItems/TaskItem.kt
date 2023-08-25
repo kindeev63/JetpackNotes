@@ -2,7 +2,6 @@ package com.example.jetpacknotes.myItems
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,8 +34,6 @@ import com.example.jetpacknotes.ItemColor
 @Composable
 fun TaskItem(
     title: String,
-    time: String?,
-    date: String?,
     color: ItemColor,
     done: Boolean,
     selected: Boolean,
@@ -94,32 +91,11 @@ fun TaskItem(
                 ) {
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                         text = title,
                         color = Color.Black,
                         maxLines = 1
                     )
-                    Column(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(IntrinsicSize.Min)
-                            .padding(end = 16.dp),
-                        verticalArrangement = Arrangement.Bottom,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = time ?: "",
-                            fontSize = 16.sp,
-                            color = Color.Black
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = date ?: "",
-                            fontSize = 12.sp,
-                            color = Color.Black
-                        )
-                        Spacer(modifier = Modifier.height(5.dp))
-                    }
                 }
 
             }
@@ -132,11 +108,11 @@ fun TaskItem(
 @Composable
 @Preview
 private fun TaskItemSelectedPreview() {
-    TaskItem("Задача 1", "14:30", "20.08.2007", Colors.colors[0], true, true, {}, {}, {})
+    TaskItem("Задача 1", Colors.colors[0], true, true, {}, {}, {})
 }
 
 @Composable
 @Preview
 private fun TaskItemNoSelectedPreview() {
-    TaskItem("Задача 2", null, null, Colors.colors[1], false, false, {}, {}, {})
+    TaskItem("Задача 2", Colors.colors[1], false, false, {}, {}, {})
 }

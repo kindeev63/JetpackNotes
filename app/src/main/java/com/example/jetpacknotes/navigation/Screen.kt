@@ -1,7 +1,5 @@
 package com.example.jetpacknotes.navigation
 
-import android.os.Bundle
-
 sealed class Screen(
     val route: String
 ) {

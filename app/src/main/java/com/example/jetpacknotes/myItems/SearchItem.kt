@@ -37,7 +37,7 @@ fun SearchItem(
                 },
                 singleLine = true,
                 hintText = "Введите текст...",
-                boxModifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f)
             )
             IconButton(
                 modifier = Modifier.alpha(0.5f),

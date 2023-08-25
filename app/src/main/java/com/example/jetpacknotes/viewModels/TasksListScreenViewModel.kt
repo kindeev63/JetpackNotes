@@ -10,7 +10,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.jetpacknotes.db.Category
 import com.example.jetpacknotes.db.CategoryType
-import com.example.jetpacknotes.db.Note
 import com.example.jetpacknotes.db.Task
 import com.example.jetpacknotes.receivers.AlarmReceiver
 

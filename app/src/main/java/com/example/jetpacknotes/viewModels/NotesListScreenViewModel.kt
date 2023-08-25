@@ -4,10 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -15,8 +12,6 @@ import com.example.jetpacknotes.db.Category
 import com.example.jetpacknotes.db.CategoryType
 import com.example.jetpacknotes.db.Note
 import com.example.jetpacknotes.receivers.AlarmReceiver
-import java.util.Calendar
-import java.util.Date
 
 class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) : ViewModel() {
     private val _selectedNotes = MutableLiveData<List<Note>>(emptyList())
