@@ -37,15 +37,12 @@ import com.example.jetpacknotes.db.Category
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryDialog(
-    openCategoryDialog: MutableState<Category?>,
+    category: Category,
     deleteCategory: (Category) -> Unit,
-    insertCategory: (Category) -> Unit
+    insertCategory: (Category) -> Unit,
+    onDismissReqest: () -> Unit
 ) {
-    val category = openCategoryDialog.value
-    if (category != null) {
-        Dialog(onDismissRequest = {
-            openCategoryDialog.value = null
-        }) {
+        Dialog(onDismissRequest = onDismissReqest) {
             Box(
                 modifier = Modifier
                     .width(IntrinsicSize.Min)
@@ -103,7 +100,7 @@ fun CategoryDialog(
                         if (category.name != "") {
                             IconButton(onClick = {
                                 deleteCategory(category)
-                                openCategoryDialog.value = null
+                                onDismissReqest()
                             }) {
                                 Icon(Icons.Filled.Delete, contentDescription = null)
                             }
@@ -113,13 +110,13 @@ fun CategoryDialog(
                     Row(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        TextButton(onClick = { openCategoryDialog.value = null }) {
+                        TextButton(onClick = onDismissReqest) {
                             Text(text = "cancel")
                         }
                         TextButton(onClick = {
                             if (categoryName.value != "") {
                                 insertCategory(category.copy(name = categoryName.value))
-                                openCategoryDialog.value = null
+                                onDismissReqest()
                             }
                         }) {
                             Text(text = "save")
@@ -128,5 +125,4 @@ fun CategoryDialog(
                 }
             }
         }
-    }
 }

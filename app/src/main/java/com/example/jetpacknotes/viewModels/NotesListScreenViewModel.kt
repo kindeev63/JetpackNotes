@@ -26,6 +26,12 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
     private val _category = MutableLiveData<Category?>(null)
     val category: LiveData<Category?> = _category
 
+    fun checkCategory(category: Category?, allCategories: List<Category>) {
+        if (category == null) return
+        if (category !in allCategories) {
+            setCategory(allCategories.find { it.id == category.id })
+        }
+    }
     fun search(searchText: String?) {
         _searchText.value = searchText
     }

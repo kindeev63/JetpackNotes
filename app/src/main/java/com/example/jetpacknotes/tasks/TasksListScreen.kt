@@ -88,6 +88,20 @@ fun TasksListScreen(
     val openCategoryDialog = rememberSaveable {
         mutableStateOf<Category?>(null)
     }
+    openCategoryDialog.value?.let {
+        CategoryDialog(
+            category = it,
+            insertCategory = {
+                mainAppViewModel.insertCategory(it)
+            },
+            deleteCategory = {
+                viewModel.deleteCategory(it)
+            },
+            onDismissReqest = {
+                openCategoryDialog.value = null
+            }
+        )
+    }
     val openTaskDialog = rememberSaveable {
         mutableStateOf<TaskForDialog?>(null)
     }
@@ -98,15 +112,7 @@ fun TasksListScreen(
         )
     }
     val scope = rememberCoroutineScope()
-    CategoryDialog(
-        openCategoryDialog = openCategoryDialog,
-        insertCategory = {
-            mainAppViewModel.insertCategory(it)
-        },
-        deleteCategory = {
-            viewModel.deleteCategory(it)
-        }
-    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()

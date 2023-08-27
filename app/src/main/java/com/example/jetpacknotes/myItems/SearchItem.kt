@@ -7,10 +7,14 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 
 @Composable
 fun SearchItem(
@@ -18,6 +22,7 @@ fun SearchItem(
     value: String?,
     onValueChange: (String?) -> Unit
 ) {
+    val focusRequester = remember { FocusRequester() }
     if (value == null) {
         IconButton(
             onClick = {
@@ -38,7 +43,8 @@ fun SearchItem(
                 },
                 singleLine = true,
                 hintText = "Введите текст...",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                textFieldModifier = Modifier.focusRequester(focusRequester)
             )
             IconButton(
                 modifier = Modifier.alpha(0.5f),
@@ -53,6 +59,11 @@ fun SearchItem(
             ) {
                 Icon(Icons.Default.Close, contentDescription = null)
             }
+        }
+    }
+    LaunchedEffect(value == null) {
+        if (value != null) {
+            focusRequester.requestFocus()
         }
     }
 }

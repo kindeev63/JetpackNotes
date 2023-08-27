@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun PlaceholderTextField(
     modifier: Modifier = Modifier,
+    textFieldModifier: Modifier = Modifier,
     value: String,
     onValueChange: (String) -> Unit,
     hintText: String = "",
@@ -30,7 +31,7 @@ fun PlaceholderTextField(
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = textFieldModifier.fillMaxWidth(),
             singleLine = singleLine,
             textStyle = TextStyle.Default.copy(fontSize = fontSize)
         )
