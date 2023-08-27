@@ -89,7 +89,7 @@ fun NotesListScreen(
         CategoryDialog(
             category = it,
             insertCategory = mainAppViewModel::insertCategory,
-            deleteCategory = mainAppViewModel::deleteCategory,
+            deleteCategory = viewModel::deleteCategory,
             onDismissReqest = {
                 openCategoryDialog = null
             }
