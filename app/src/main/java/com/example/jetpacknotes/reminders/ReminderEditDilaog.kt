@@ -85,6 +85,7 @@ import com.example.jetpacknotes.db.Task
 import com.example.jetpacknotes.myItems.AppItem
 import com.example.jetpacknotes.myItems.ApplicationData
 import com.example.jetpacknotes.myItems.DatePickerDialog
+import com.example.jetpacknotes.myItems.DialogActionButtons
 import com.example.jetpacknotes.myItems.NoteItem
 import com.example.jetpacknotes.myItems.PlaceholderTextField
 import com.example.jetpacknotes.myItems.TaskItem
@@ -119,8 +120,8 @@ fun ReminderEditDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = (LocalConfiguration.current.screenHeightDp / 6 * 4).dp)
-                .clip(RoundedCornerShape(5.dp))
                 .padding(PaddingValues(horizontal = 24.dp))
+                .clip(RoundedCornerShape(5.dp))
                 .background(Color.Black)
                 .padding(2.dp)
         ) {
@@ -134,60 +135,42 @@ fun ReminderEditDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 DialogContent(reminder = reminder, mainAppViewModel = mainAppViewModel)
-                ActionButtons(
-                    reminderState = reminderState,
-                    reminder = reminder,
-                    mainAppViewModel = mainAppViewModel
+                val context = LocalContext.current
+                DialogActionButtons(
+                    onSave = {
+                        if (
+                            when (reminder.value.action) {
+                                ReminderAction.OpenApp -> true
+                                ReminderAction.OpenNote -> {
+                                    if (reminder.value.noteId != null) {
+                                        true
+                                    } else {
+                                        Toast.makeText(context, "Выберите заметку", Toast.LENGTH_SHORT).show()
+                                        false
+                                    }
+                                }
+
+                                ReminderAction.OpenTask -> {
+                                    if (reminder.value.taskId != null) {
+                                        true
+                                    } else {
+                                        Toast.makeText(context, "Выберите задачу", Toast.LENGTH_SHORT).show()
+                                        false
+                                    }
+                                }
+                            }
+                        ) {
+                            mainAppViewModel.insertReminder(reminder.value) {
+                                setAlarm(reminder.value, context)
+                                reminderState.value = null
+                            }
+                        }
+                    },
+                    onCancel = {
+                        reminderState.value = null
+                    }
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun ActionButtons(
-    reminderState: MutableState<ReminderForDialog?>,
-    reminder: MutableState<Reminder>,
-    mainAppViewModel: MainAppViewModel
-) {
-    Row(
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        val context = LocalContext.current
-        TextButton(onClick = { reminderState.value = null }) {
-            Text(text = "cancel")
-        }
-        TextButton(onClick = {
-            if (
-                when (reminder.value.action) {
-                    ReminderAction.OpenApp -> true
-                    ReminderAction.OpenNote -> {
-                        if (reminder.value.noteId != null) {
-                            true
-                        } else {
-                            Toast.makeText(context, "Выберите заметку", Toast.LENGTH_SHORT).show()
-                            false
-                        }
-                    }
-
-                    ReminderAction.OpenTask -> {
-                        if (reminder.value.taskId != null) {
-                            true
-                        } else {
-                            Toast.makeText(context, "Выберите задачу", Toast.LENGTH_SHORT).show()
-                            false
-                        }
-                    }
-                }
-            ) {
-                mainAppViewModel.insertReminder(reminder.value) {
-                    setAlarm(reminder.value, context)
-                    reminderState.value = null
-                }
-            }
-
-        }) {
-            Text(text = "save")
         }
     }
 }
@@ -611,16 +594,16 @@ private fun PickAppDialog(open: MutableState<Boolean>, reminder: MutableState<Re
             var searchText by rememberSaveable {
                 mutableStateOf("")
             }
-                PlaceholderTextField(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    value = searchText,
-                    onValueChange = {
-                        searchText = it
-                    },
-                    hintText = "Search..."
-                )
+            PlaceholderTextField(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                value = searchText,
+                onValueChange = {
+                    searchText = it
+                },
+                hintText = "Search..."
+            )
             Divider()
             Box(
                 modifier = Modifier
@@ -653,7 +636,7 @@ private fun PickAppDialog(open: MutableState<Boolean>, reminder: MutableState<Re
 }
 
 private fun List<ApplicationData>.filterAppsByName(searchText: String): List<ApplicationData> {
-    return this.filter{it.name.lowercase().contains(searchText.lowercase())}
+    return this.filter { it.name.lowercase().contains(searchText.lowercase()) }
 }
 
 @SuppressLint("CoroutineCreationDuringComposition")
@@ -737,13 +720,13 @@ private fun NoteCard(reminder: MutableState<Reminder>, mainAppViewModel: MainApp
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = timeFormatter.format(note.time),
+                        text = timeFormatter.format(note.lastEditTime),
                         fontSize = 16.sp,
                         color = Color.Black
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = dateFormatter.format(note.time),
+                        text = dateFormatter.format(note.lastEditTime),
                         fontSize = 12.sp,
                         color = Color.Black
                     )
@@ -804,8 +787,8 @@ private fun PickNoteDialog(
                         val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
                         NoteItem(
                             title = note.title,
-                            time = timeFormatter.format(note.time),
-                            date = dateFormatter.format(note.time),
+                            time = timeFormatter.format(note.lastEditTime),
+                            date = dateFormatter.format(note.lastEditTime),
                             color = Colors.colors[note.colorIndex],
                             selected = false,
                             onClick = {
@@ -833,9 +816,8 @@ private fun PickNoteDialog(
 }
 
 private fun List<Note>.filterNotesByTitle(searchText: String): List<Note> {
-    return this.filter {it.title.lowercase().contains(searchText.lowercase())}
+    return this.filter { it.title.lowercase().contains(searchText.lowercase()) }
 }
-
 
 
 @SuppressLint("CoroutineCreationDuringComposition")
@@ -992,7 +974,7 @@ private fun PickTaskDialog(
 }
 
 private fun List<Task>.filterTasksByTitle(searchText: String): List<Task> {
-    return this.filter{it.title.lowercase().contains(searchText.lowercase())}
+    return this.filter { it.title.lowercase().contains(searchText.lowercase()) }
 }
 
 private fun createReminder(mainAppViewModel: MainAppViewModel, packageName: String): Reminder {

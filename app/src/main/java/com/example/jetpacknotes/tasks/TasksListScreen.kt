@@ -313,8 +313,11 @@ private fun TasksListAppBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             SearchItem(
-                searchText = searchText,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                value = searchText.value,
+                onValueChange = {
+                    searchText.value = it
+                }
             )
             if (selectedNotes.value.isNotEmpty()) {
                 val context = LocalContext.current

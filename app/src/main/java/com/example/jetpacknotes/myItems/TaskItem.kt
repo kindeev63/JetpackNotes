@@ -54,7 +54,6 @@ fun TaskItem(
             )
             .background(if (selected) Color.Black else Color.Transparent)
             .padding(2.dp)
-
     ) {
         Row(
             modifier = Modifier
@@ -70,7 +69,6 @@ fun TaskItem(
                     onLongClick = onLongClick
                 )
                 .background(Color(-2500135))
-
         ) {
             Row(
                 modifier = Modifier
@@ -100,12 +98,9 @@ fun TaskItem(
                         textDecoration = if (done) TextDecoration.LineThrough else TextDecoration.None,
                     )
                 }
-
             }
-
         }
     }
-
 }
 
 @Composable

@@ -5,10 +5,7 @@ import android.view.MotionEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +26,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -66,6 +62,7 @@ import com.example.jetpacknotes.db.Category
 import com.example.jetpacknotes.db.Note
 import com.example.jetpacknotes.db.Reminder
 import com.example.jetpacknotes.db.ReminderAction
+import com.example.jetpacknotes.myItems.ColorSpinner
 import com.example.jetpacknotes.reminders.ReminderEditDialog
 import com.example.jetpacknotes.reminders.ReminderForDialog
 import com.example.jetpacknotes.viewModels.MainAppViewModel
@@ -258,10 +255,11 @@ fun NoteEditScreen(
                         )
                     }
                 }
-                NoteEditSpinner(
-                    currentNoteState = currentNoteState,
-                    viewModel = viewModel
-                )
+                ColorSpinner(
+                    colors = Colors.colors.map { Color(it.primary) },
+                    colorIndex = currentNoteState.value.colorIndex) { index ->
+                    viewModel.addNoteState(colorIndex = index)
+                }
             }
             Spacer(modifier = Modifier.height(16.dp))
             Box(
@@ -454,50 +452,6 @@ private fun NoteEditAppBar(
     }
 }
 
-@Composable
-private fun NoteEditSpinner(
-    currentNoteState: State<NoteState>,
-    viewModel: NoteEditScreenViewModel
-) {
-    var expanded by remember {
-        mutableStateOf(false)
-    }
-    Box {
-        NoteEditSpinnerItem(color = Color(Colors.colors[currentNoteState.value.colorIndex].primary)) {
-            expanded = true
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            Colors.colors.forEachIndexed { index, color ->
-                NoteEditSpinnerItem(color = Color(color.primary)) {
-                    viewModel.addNoteState(colorIndex = index)
-                    expanded = false
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun NoteEditSpinnerItem(color: Color, clickable: () -> Unit = {}) {
-    Box(
-        modifier = if (clickable != {}) {
-            Modifier
-                .size(50.dp)
-                .background(color)
-                .border(BorderStroke(2.dp, Color.Black))
-                .clickable { clickable() }
-        } else {
-            Modifier
-                .size(50.dp)
-                .background(color)
-                .border(BorderStroke(2.dp, Color.Black))
-        }
-    )
-}
-
 private fun saveNote(
     mainAppViewModel: MainAppViewModel,
     note: Note,
@@ -507,13 +461,15 @@ private fun saveNote(
     categories: String,
     function: () -> Unit
 ) {
+    val time = LocalDateTime.now().atZone(ZoneId.systemDefault()).withSecond(0).toInstant()
+        .toEpochMilli()
     mainAppViewModel.insertNote(
         note.copy(
             title = title,
             text = text,
             colorIndex = colorIndex,
             categories = categories,
-            time = Calendar.getInstance().timeInMillis
+            lastEditTime = time
         )
     ) {
         function()

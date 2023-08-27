@@ -2,6 +2,7 @@ package com.example.jetpacknotes.notes
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.DrawerState
@@ -49,9 +51,14 @@ import com.example.jetpacknotes.viewModels.NotesListScreenViewModelFactory
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import com.example.jetpacknotes.Colors
+import com.example.jetpacknotes.FilterData
+import com.example.jetpacknotes.FilterType
+import com.example.jetpacknotes.R
 import com.example.jetpacknotes.myItems.CategoryDialog
 import com.example.jetpacknotes.myItems.CategoryItem
+import com.example.jetpacknotes.myItems.FilterDialog
 import com.example.jetpacknotes.myItems.NoteItem
 import com.example.jetpacknotes.myItems.SearchItem
 import kotlinx.coroutines.CoroutineScope
@@ -68,23 +75,19 @@ fun NotesListScreen(
     val viewModel: NotesListScreenViewModel = viewModel(
         factory = NotesListScreenViewModelFactory(mainAppViewModel)
     )
+    val allNotes = mainAppViewModel.allNotes.observeAsState(emptyList())
     val categoriesList = mainAppViewModel.categoryOfNotes.observeAsState(listOf())
-
-    val notesList = mainAppViewModel.allNotes.observeAsState(listOf())
     val selectedNotes = viewModel.selectedNotes.observeAsState(listOf())
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val searchText = rememberSaveable {
-        mutableStateOf<String?>(null)
-    }
-    val categoryState = rememberSaveable {
-        mutableStateOf<Category?>(null)
-    }
-    categoryState.value?.let { category ->
-        if (category !in categoriesList.value) {
-            if (category.id in categoriesList.value.map { it.id }) {
-                categoryState.value = categoriesList.value.find { it.id == category.id }
+    val category = viewModel.category.observeAsState()
+    val searchText = viewModel.searchText.observeAsState()
+    val filterData = viewModel.filterData.observeAsState()
+    category.value?.let { currentCategory ->
+        if (currentCategory !in categoriesList.value) {
+            if (currentCategory.id in categoriesList.value.map { it.id }) {
+                viewModel.setCategory(categoriesList.value.find { it.id == currentCategory.id })
             } else {
-                categoryState.value = null
+                viewModel.setCategory(null)
             }
         }
     }
@@ -106,11 +109,11 @@ fun NotesListScreen(
             .fillMaxSize()
     ) {
         NotesListAppBar(
-            title = categoryState.value?.name ?: "All Notes",
+            title = category.value?.name ?: "All Notes",
             drawerState = drawerState,
             scope = scope,
             viewModel = viewModel,
-            searchText = searchText
+            searchText = searchText.value
         )
         Scaffold(
             floatingActionButton = {
@@ -137,13 +140,13 @@ fun NotesListScreen(
                         CategoryItem(
                             name = "Все заметки",
                             onClick = {
-                                categoryState.value = null
+                                viewModel.setCategory(null)
                                 scope.launch {
                                     drawerState.close()
                                 }
                             },
                             onLongClick = {
-                                categoryState.value = null
+                                viewModel.setCategory(null)
                                 scope.launch {
                                     drawerState.close()
                                 }
@@ -151,22 +154,24 @@ fun NotesListScreen(
                         CategoriesList(
                             categoriesList = categoriesList.value,
                             onClick = { category, long ->
-                                viewModel.clickOnCategory(category, long, categoryState, openCategoryDialog)
-                                if (!long) {
+                                if (long) {
+                                    openCategoryDialog.value = category.copy()
+                                } else {
+                                    viewModel.setCategory(category)
                                     scope.launch {
                                         drawerState.close()
                                     }
                                 }
-
                             })
                     }
                 }
             ) {
                 NotesList(
                     notesList = viewModel.filterNotes(
-                        notesList.value,
-                        searchText.value,
-                        categoryState.value
+                        notes = allNotes.value,
+                        category = category.value,
+                        searchText = searchText.value,
+                        filterData = filterData.value
                     ),
                     selectedNotes = selectedNotes.value,
                     onClick = { note, long ->
@@ -201,8 +206,8 @@ private fun NotesList(
         ) { note ->
             NoteItem(
                 title = note.title,
-                time = timeFormatter.format(note.time),
-                date = dateFormatter.format(note.time),
+                time = timeFormatter.format(note.lastEditTime),
+                date = dateFormatter.format(note.lastEditTime),
                 color = Colors.colors[note.colorIndex],
                 selected = note in selectedNotes,
                 onClick = {
@@ -271,7 +276,7 @@ private fun NotesListAppBar(
     drawerState: DrawerState,
     scope: CoroutineScope,
     viewModel: NotesListScreenViewModel,
-    searchText: MutableState<String?>
+    searchText: String?
 ) {
     val selectedNotes = viewModel.selectedNotes.observeAsState(listOf())
     Row(
@@ -289,7 +294,7 @@ private fun NotesListAppBar(
         }) {
             Icon(Icons.Filled.Menu, contentDescription = null)
         }
-        if (searchText.value == null) {
+        if (searchText == null) {
             Text(
                 text = title,
                 fontSize = 24.sp
@@ -302,9 +307,13 @@ private fun NotesListAppBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             SearchItem(
-                searchText = searchText,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                value = searchText,
+                onValueChange = {
+                    viewModel.search(it)
+                }
             )
+            FilterIcon(viewModel = viewModel)
             if (selectedNotes.value.isNotEmpty()) {
                 val context = LocalContext.current
                 IconButton(onClick = { viewModel.deleteSelectedNotes(context) }) {
@@ -316,3 +325,23 @@ private fun NotesListAppBar(
     }
 }
 
+@Composable
+private fun FilterIcon(viewModel: NotesListScreenViewModel) {
+    val openFilterDialog = rememberSaveable {
+        mutableStateOf(false)
+    }
+    if (openFilterDialog.value) {
+        viewModel.filterData.value?.let { filterData ->
+            FilterDialog(
+                currentData = filterData,
+                onDismissRequest = { openFilterDialog.value = false },
+                setFilter = {
+                    viewModel.setFilterData(filterData = it)
+                }
+            )
+        }
+    }
+    IconButton(onClick = { openFilterDialog.value = true }) {
+        Icon(painterResource(id = R.drawable.ic_filter), contentDescription = null)
+    }
+}

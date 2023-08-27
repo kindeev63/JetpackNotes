@@ -15,12 +15,13 @@ import androidx.compose.ui.draw.alpha
 @Composable
 fun SearchItem(
     modifier: Modifier = Modifier,
-    searchText: MutableState<String?>,
+    value: String?,
+    onValueChange: (String?) -> Unit
 ) {
-    if (searchText.value == null) {
+    if (value == null) {
         IconButton(
             onClick = {
-                searchText.value = ""
+                onValueChange("")
             }
         ) {
             Icon(Icons.Filled.Search, contentDescription = null)
@@ -31,9 +32,9 @@ fun SearchItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             PlaceholderTextField(
-                value = searchText.value ?: "",
+                value = value,
                 onValueChange = {
-                    searchText.value = it
+                    onValueChange(it)
                 },
                 singleLine = true,
                 hintText = "Введите текст...",
@@ -42,10 +43,10 @@ fun SearchItem(
             IconButton(
                 modifier = Modifier.alpha(0.5f),
                 onClick = {
-                    if (searchText.value == "") {
-                        searchText.value = null
+                    if (value == "") {
+                        onValueChange(null)
                     } else {
-                        searchText.value = ""
+                        onValueChange("")
                     }
 
                 }

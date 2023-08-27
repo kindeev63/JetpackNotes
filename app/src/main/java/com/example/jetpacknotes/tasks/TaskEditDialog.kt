@@ -55,6 +55,8 @@ import com.example.jetpacknotes.Colors
 import com.example.jetpacknotes.R
 import com.example.jetpacknotes.db.Category
 import com.example.jetpacknotes.db.Task
+import com.example.jetpacknotes.myItems.ColorSpinner
+import com.example.jetpacknotes.myItems.DialogActionButtons
 import com.example.jetpacknotes.myItems.PlaceholderTextField
 import com.example.jetpacknotes.viewModels.MainAppViewModel
 import java.time.LocalDateTime
@@ -77,7 +79,8 @@ fun TaskEditDialog(
         CategoryDialog(
             openDialog = openCategoriesDialog,
             allCategoriesList = allCategories.value,
-            task = task)
+            task = task
+        )
     }
     Dialog(
         onDismissRequest = { taskState.value = null },
@@ -87,9 +90,9 @@ fun TaskEditDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = (LocalConfiguration.current.screenHeightDp/6*4).dp)
-                .clip(RoundedCornerShape(5.dp))
+                .heightIn(max = (LocalConfiguration.current.screenHeightDp / 6 * 4).dp)
                 .padding(PaddingValues(horizontal = 24.dp))
+                .clip(RoundedCornerShape(5.dp))
                 .background(Color.Black)
                 .padding(2.dp)
         ) {
@@ -109,10 +112,15 @@ fun TaskEditDialog(
                     showCategoryButton = allCategories.value.isNotEmpty()
                 )
                 TaskDescription(task = task)
-                ActionButtons(
-                    task = task,
-                    taskState = taskState,
-                    mainAppViewModel = mainAppViewModel
+                DialogActionButtons(
+                    onSave = {
+                        mainAppViewModel.insertTask(task.value) {
+                            taskState.value = null
+                        }
+                    },
+                    onCancel = {
+                        taskState.value = null
+                    }
                 )
             }
         }
@@ -145,28 +153,6 @@ private fun TaskDescription(
                 },
                 hintText = "Описание"
             )
-        }
-    }
-}
-
-@Composable
-private fun ActionButtons(
-    task: MutableState<Task>,
-    taskState: MutableState<TaskForDialog?>,
-    mainAppViewModel: MainAppViewModel
-) {
-    Row(
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        TextButton(onClick = { taskState.value = null }) {
-            Text(text = "cancel")
-        }
-        TextButton(onClick = {
-            mainAppViewModel.insertTask(task.value) {
-                taskState.value = null
-            }
-        }) {
-            Text(text = "save")
         }
     }
 }
@@ -213,7 +199,12 @@ private fun ColorAndCategories(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        TaskEditSpinner(task = task)
+        ColorSpinner(
+            colors = Colors.colors.map { Color(it.primary) },
+            colorIndex = task.value.colorIndex
+        ) { index ->
+            task.value = task.value.copy(colorIndex = index)
+        }
         if (showCategoryButton) {
             Button(
                 modifier = Modifier.size(50.dp),
@@ -250,49 +241,6 @@ private fun createTask(mainAppViewModel: MainAppViewModel): Task {
         done = false,
         categories = "",
         colorIndex = 0
-    )
-}
-
-@Composable
-private fun TaskEditSpinner(
-    task: MutableState<Task>
-) {
-    var expanded by remember {
-        mutableStateOf(false)
-    }
-    Box {
-        TaskEditSpinnerItem(color = Color(Colors.colors[task.value.colorIndex].primary)) {
-            expanded = true
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            Colors.colors.forEachIndexed { index, color ->
-                TaskEditSpinnerItem(color = Color(color.primary)) {
-                    task.value = task.value.copy(colorIndex = index)
-                    expanded = false
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TaskEditSpinnerItem(color: Color, clickable: () -> Unit = {}) {
-    Box(
-        modifier = if (clickable != {}) {
-            Modifier
-                .size(50.dp)
-                .background(color)
-                .border(BorderStroke(2.dp, Color.Black))
-                .clickable { clickable() }
-        } else {
-            Modifier
-                .size(50.dp)
-                .background(color)
-                .border(BorderStroke(2.dp, Color.Black))
-        }
     )
 }
 

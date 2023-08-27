@@ -265,8 +265,11 @@ private fun RemindersListAppBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             SearchItem(
-                searchText = searchText,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                value = searchText.value,
+                onValueChange = {
+                    searchText.value = it
+                }
             )
             if (selectedReminders.value.isNotEmpty()) {
                 val context = LocalContext.current

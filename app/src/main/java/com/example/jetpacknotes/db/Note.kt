@@ -9,12 +9,14 @@ import java.io.Serializable
 data class Note(
     @PrimaryKey(autoGenerate = false)
     val id: Int,
+    @ColumnInfo(name = "createTime")
+    val createTime: Long,
     @ColumnInfo(name = "title")
     var title: String,
     @ColumnInfo(name = "text")
     var text: String,
-    @ColumnInfo(name = "time")
-    var time: Long,
+    @ColumnInfo(name = "lastEditTime")
+    val lastEditTime: Long,
     @ColumnInfo(name = "categories")
     var categories: String,
     @ColumnInfo(name = "colorIndex")

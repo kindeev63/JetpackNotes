@@ -4,10 +4,13 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.example.jetpacknotes.FilterData
+import com.example.jetpacknotes.FilterType
 import com.example.jetpacknotes.db.Category
 import com.example.jetpacknotes.db.CategoryType
 import com.example.jetpacknotes.db.Note
@@ -16,6 +19,20 @@ import com.example.jetpacknotes.receivers.AlarmReceiver
 class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) : ViewModel() {
     private val _selectedNotes = MutableLiveData<List<Note>>(emptyList())
     val selectedNotes: LiveData<List<Note>> = _selectedNotes
+    private val _filterData = MutableLiveData(FilterData(null, FilterType.Edit))
+    val filterData: LiveData<FilterData> = _filterData
+    private val _searchText = MutableLiveData<String?>(null)
+    val searchText: LiveData<String?> = _searchText
+    private val _category = MutableLiveData<Category?>(null)
+    val category: LiveData<Category?> = _category
+
+    fun search(searchText: String?) {
+        _searchText.value = searchText
+    }
+
+    fun setCategory(category: Category?) {
+        _category.value = category
+    }
 
     fun changeSelectionStateOf(note: Note) {
         _selectedNotes.value?.let { selNotes ->
@@ -72,24 +89,44 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
         return Category(categoryId, "", CategoryType.Note)
     }
 
-    fun clickOnCategory(
-        category: Category,
-        long: Boolean,
-        state: MutableState<Category?>,
-        openDialog: MutableState<Category?>
-    ) {
-        if (long) {
-            openDialog.value = category.copy()
-        } else {
-            state.value = category.copy()
-        }
-    }
+    fun filterNotes(
+        notes: List<Note>,
+        category: Category?,
+        searchText: String?,
+        filterData: FilterData?
+    ): List<Note> {
+        val filteredNotes = notes
+            // By category
+            .filter { note ->
+                category == null || note.categories.split(" | ")
+                    .contains(category.id.toString())
+            }
+            // By search text
+            .filter { note ->
+                note.title.lowercase().contains(searchText?.lowercase() ?: "")
+            }
+            // By color
+            .filter { note ->
+                filterData?.colorIndex == null || note.colorIndex == filterData.colorIndex
+            }
 
-    fun filterNotes(notes: List<Note>, searchText: String?, category: Category?): List<Note> {
-        return notes.filter { note ->
-            (if (category != null) category.id.toString() in note.categories.split(
-                " | "
-            ) else true) && note.title.lowercase().contains(searchText?.lowercase() ?: "")
+        // Ordering by filter type
+        return when (filterData?.type) {
+            null -> {
+                filteredNotes
+            }
+
+            FilterType.Create -> {
+                filteredNotes.sortedBy { it.createTime }.reversed()
+            }
+
+            FilterType.Edit -> {
+                filteredNotes.sortedBy { it.lastEditTime }.reversed()
+            }
+
+            FilterType.Color -> {
+                filteredNotes.sortedBy { it.colorIndex }
+            }
         }
     }
 
@@ -106,5 +143,9 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
             }
         }
         mainAppViewModel.deleteCategory(category)
+    }
+
+    fun setFilterData(filterData: FilterData) {
+        _filterData.value = filterData
     }
 }

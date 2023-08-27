@@ -6,7 +6,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.jetpacknotes.db.Note
 import com.example.jetpacknotes.notes.NoteState
-import java.util.Calendar
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 class NoteEditScreenViewModel(private val mainAppViewModel: MainAppViewModel): ViewModel() {
     private var noteStates = arrayListOf<NoteState>()
@@ -61,7 +62,17 @@ class NoteEditScreenViewModel(private val mainAppViewModel: MainAppViewModel): V
             if (noteId !in idsList) break
             noteId++
         }
-        val note = Note(noteId, "", "", Calendar.getInstance().timeInMillis, "", 0)
+        val time = LocalDateTime.now().atZone(ZoneId.systemDefault()).withSecond(0).toInstant()
+            .toEpochMilli()
+        val note = Note(
+            id = noteId,
+            createTime = time,
+            title = "",
+            text = "",
+            lastEditTime = time,
+            categories = "",
+            colorIndex = 0
+        )
         function(note)
     }
 }
