@@ -69,19 +69,6 @@ class TasksListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
         return Category(categoryId, "", CategoryType.Task)
     }
 
-    fun clickOnCategory(
-        category: Category,
-        long: Boolean,
-        state: MutableState<Category?>,
-        openDialog: MutableState<Category?>
-    ) {
-        if (long) {
-            openDialog.value = category.copy()
-        } else {
-            state.value = category.copy()
-        }
-    }
-
     fun filterTasks(
         tasks: List<Task>,
         category: Category?,
