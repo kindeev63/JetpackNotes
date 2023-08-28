@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,7 +18,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Divider
-import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -31,7 +29,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -45,6 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.jetpacknotes.Colors
+import com.example.jetpacknotes.FilterData
+import com.example.jetpacknotes.FilterType
 import com.example.jetpacknotes.db.Category
 import com.example.jetpacknotes.db.Task
 import com.example.jetpacknotes.myItems.CategoryDialog
@@ -54,11 +53,16 @@ import com.example.jetpacknotes.myItems.TaskItem
 import com.example.jetpacknotes.viewModels.MainAppViewModel
 import com.example.jetpacknotes.viewModels.TasksListScreenViewModel
 import com.example.jetpacknotes.viewModels.TasksListScreenViewModelFactory
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
+import com.example.jetpacknotes.R
+import com.example.jetpacknotes.myItems.FilterDialog
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun TasksListScreen(
     mainAppViewModel: MainAppViewModel
@@ -66,68 +70,81 @@ fun TasksListScreen(
     val viewModel: TasksListScreenViewModel = viewModel(
         factory = TasksListScreenViewModelFactory(mainAppViewModel)
     )
-    val categoriesList = mainAppViewModel.categoryOfTasks.observeAsState(listOf())
-    val tasksList = mainAppViewModel.allTasks.observeAsState(listOf())
-    val selectedTasks = viewModel.selectedTasks.observeAsState(listOf())
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val searchText = rememberSaveable {
-        mutableStateOf<String?>(null)
-    }
-    val categoryState = rememberSaveable {
+    val allTasks = mainAppViewModel.allTasks.observeAsState(emptyList())
+    val allCategories = mainAppViewModel.categoryOfTasks.observeAsState(emptyList())
+    val selectedTasks = viewModel.selectedTasks.observeAsState(emptyList())
+
+    val category = viewModel.category.observeAsState()
+    val searchText = viewModel.searchText.observeAsState()
+    val filterData = viewModel.filterData.observeAsState(FilterData(null, FilterType.Edit))
+
+    viewModel.checkCategory(category.value, allCategories.value)
+
+    var openCategoryDialog by rememberSaveable {
         mutableStateOf<Category?>(null)
     }
-    categoryState.value?.let { category ->
-        if (category !in categoriesList.value) {
-            if (category.id in categoriesList.value.map { it.id }) {
-                categoryState.value = categoriesList.value.find { it.id == category.id }
-            } else {
-                categoryState.value = null
-            }
-        }
-    }
-    val openCategoryDialog = rememberSaveable {
-        mutableStateOf<Category?>(null)
-    }
-    openCategoryDialog.value?.let {
+    openCategoryDialog?.let {
         CategoryDialog(
             category = it,
-            insertCategory = {
-                mainAppViewModel.insertCategory(it)
-            },
-            deleteCategory = {
-                viewModel.deleteCategory(it)
-            },
+            insertCategory = mainAppViewModel::insertCategory,
+            deleteCategory = viewModel::deleteCategory,
             onDismissReqest = {
-                openCategoryDialog.value = null
+                openCategoryDialog = null
             }
         )
     }
-    val openTaskDialog = rememberSaveable {
-        mutableStateOf<TaskForDialog?>(null)
+
+    var openFilterDialog by rememberSaveable {
+        mutableStateOf(false)
     }
-    openTaskDialog.value?.let {
-        TaskEditDialog(
-            taskState = openTaskDialog,
-            mainAppViewModel = mainAppViewModel
+    if (openFilterDialog) {
+        FilterDialog(
+            currentData = filterData.value,
+            types = listOf(FilterType.Create, FilterType.Color),
+            onDismissRequest = { openFilterDialog = false },
+            setFilter = viewModel::setFilterData
         )
     }
-    val scope = rememberCoroutineScope()
+
+    var openTaskDialog by rememberSaveable {
+        mutableStateOf<TaskForDialog?>(null)
+    }
+    openTaskDialog?.let {
+        TaskEditDialog(
+            task = it.task,
+            mainAppViewModel = mainAppViewModel,
+            onDismissRequest = {
+                openTaskDialog = null
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
     ) {
+        val context = LocalContext.current
+        val scope = rememberCoroutineScope()
+        val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         TasksListAppBar(
-            title = categoryState.value?.name ?: "All Tasks",
-            drawerState = drawerState,
-            scope = scope,
-            viewModel = viewModel,
-            searchText = searchText
+            title = category.value?.name ?: "All Tasks",
+            showDeleteButton = selectedTasks.value.isNotEmpty(),
+            searchText = searchText.value,
+            onSearch = viewModel::search,
+            onMenuButtonClicked = {
+                scope.launch {
+                    drawerState.apply {
+                        if (isClosed) open() else close()
+                    }
+                }
+            },
+            onFilterButtonClicked = { openFilterDialog = true },
+            onDeleteButtonClicked = { viewModel.deleteSelectedTasks(context) }
         )
         Scaffold(
             floatingActionButton = {
                 FloatingActionButton(onClick = {
-                    openTaskDialog.value = TaskForDialog(task = null)
+                    openTaskDialog = TaskForDialog(task = null)
                 }) {
                     Icon(Icons.Filled.Add, contentDescription = null)
                 }
@@ -137,59 +154,55 @@ fun TasksListScreen(
                 drawerState = drawerState,
                 drawerContent = {
                     ModalDrawerSheet(
-                        modifier = Modifier.width(((if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp else LocalConfiguration.current.screenHeightDp) / 5 * 4).dp)
+                        modifier = Modifier.width(getDrawerWidth())
                     ) {
                         DrawerHeader(
                             onClickAdd = {
-                                val category = viewModel.createCategory()
-                                openCategoryDialog.value = category
+                                openCategoryDialog = viewModel.createCategory()
                             }
                         )
                         Spacer(modifier = Modifier.height(10.dp))
+                        val setNullCategory: () -> Unit = {
+                            viewModel.setCategory(null)
+                            scope.launch {
+                                drawerState.close()
+                            }
+                        }
                         CategoryItem(
-                            name = "Все категории",
-                            onClick = {
-                                categoryState.value = null
-                                scope.launch {
-                                    drawerState.close()
-                                }
-                            },
-                            onLongClick = {
-                                categoryState.value = null
-                                scope.launch {
-                                    drawerState.close()
-                                }
-                            })
+                            name = "Все задачи",
+                            onClick = setNullCategory,
+                            onLongClick = setNullCategory
+                        )
                         CategoriesList(
-                            categoriesList = categoriesList.value,
+                            categoriesList = allCategories.value,
                             onClick = { category, long ->
-                                viewModel.clickOnCategory(category, long, categoryState, openCategoryDialog)
-                                if (!long) {
+                                if (long) {
+                                    openCategoryDialog = category.copy()
+                                } else {
+                                    viewModel.setCategory(category)
                                     scope.launch {
                                         drawerState.close()
                                     }
                                 }
-
-                            })
+                            }
+                        )
                     }
                 }
             ) {
+                val tasksList = viewModel.filterTasks(
+                    tasks = allTasks.value,
+                    category = category.value,
+                    searchText = searchText.value,
+                    filterData = filterData.value
+                )
                 TasksList(
-                    tasksList = viewModel.filterTasks(
-                        tasksList.value,
-                        searchText.value,
-                        categoryState.value
-                    ),
+                    tasksList = tasksList,
                     selectedTasks = selectedTasks.value,
                     onClick = { task, long ->
-                        if (long) {
+                        if (long || selectedTasks.value.isNotEmpty()) {
                             viewModel.changeSelectionStateOf(task)
                         } else {
-                            if (selectedTasks.value.isNotEmpty()) {
-                                viewModel.changeSelectionStateOf(task)
-                            } else {
-                                openTaskDialog.value = TaskForDialog(task = task)
-                            }
+                            openTaskDialog = TaskForDialog(task = task)
                         }
                     },
                     onCheckedChange = { task, done ->
@@ -281,59 +294,58 @@ private fun CategoriesList(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TasksListAppBar(
     title: String,
-    drawerState: DrawerState,
-    scope: CoroutineScope,
-    viewModel: TasksListScreenViewModel,
-    searchText: MutableState<String?>
+    showDeleteButton: Boolean,
+    searchText: String?,
+    onSearch: (String?) -> Unit,
+    onMenuButtonClicked: () -> Unit,
+    onFilterButtonClicked: () -> Unit,
+    onDeleteButtonClicked: () -> Unit
 ) {
-    val selectedNotes = viewModel.selectedTasks.observeAsState(listOf())
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = {
-            scope.launch {
-                drawerState.apply {
-                    if (isClosed) open() else close()
-                }
-            }
-        }) {
+        IconButton(onClick = onMenuButtonClicked) {
             Icon(Icons.Filled.Menu, contentDescription = null)
         }
-        if (searchText.value == null) {
-            Text(
-                text = title,
-                fontSize = 24.sp
-            )
+        if (searchText == null) {
+            Text(text = title, fontSize = 24.sp)
         }
         Row(
-            modifier = Modifier
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
             SearchItem(
                 modifier = Modifier.weight(1f),
-                value = searchText.value,
-                onValueChange = {
-                    searchText.value = it
-                }
+                value = searchText,
+                onValueChange = onSearch
             )
-            if (selectedNotes.value.isNotEmpty()) {
-                val context = LocalContext.current
-                IconButton(onClick = { viewModel.deleteSelectedTasks(context) }) {
+            IconButton(onClick = onFilterButtonClicked) {
+                Icon(painterResource(id = R.drawable.ic_filter), contentDescription = null)
+            }
+            if (showDeleteButton) {
+                IconButton(onClick = onDeleteButtonClicked) {
                     Icon(Icons.Outlined.Delete, contentDescription = null)
                 }
             }
         }
-
     }
+}
+
+@Composable
+private fun getDrawerWidth(): Dp {
+    val screenSize =
+        if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT)
+            LocalConfiguration.current.screenWidthDp
+        else
+            LocalConfiguration.current.screenHeightDp
+    return (screenSize / 5 * 4).dp
 }
 
 @Composable
@@ -343,8 +355,8 @@ private fun DrawerHeader(onClickAdd: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Spacer(modifier = Modifier.width(10.dp))
         Text(
-            modifier = Modifier.padding(start = 8.dp),
             text = "Категории",
             color = Color.Black,
             fontSize = 22.sp

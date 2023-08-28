@@ -73,7 +73,6 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.ArrayList
-import java.util.Calendar
 
 @SuppressLint("CoroutineCreationDuringComposition")
 @Composable

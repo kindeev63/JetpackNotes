@@ -30,12 +30,17 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
             setCategory(allCategories.find { it.id == category.id })
         }
     }
+
     fun search(searchText: String?) {
         _searchText.value = searchText
     }
 
     fun setCategory(category: Category?) {
         _category.value = category
+    }
+
+    fun setFilterData(filterData: FilterData) {
+        _filterData.value = filterData
     }
 
     fun changeSelectionStateOf(note: Note) {
@@ -112,16 +117,12 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
             // By color
             .filter { note ->
                 filterData?.colorIndex == null || note.colorIndex == filterData.colorIndex
-            }
+            }.reversed()
 
         // Ordering by filter type
         return when (filterData?.type) {
-            null -> {
+            null, FilterType.Create -> {
                 filteredNotes
-            }
-
-            FilterType.Create -> {
-                filteredNotes.sortedBy { it.createTime }.reversed()
             }
 
             FilterType.Edit -> {
@@ -149,7 +150,4 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
         mainAppViewModel.deleteCategory(category)
     }
 
-    fun setFilterData(filterData: FilterData) {
-        _filterData.value = filterData
-    }
 }

@@ -48,6 +48,7 @@ import com.example.jetpacknotes.R
 @Composable
 fun FilterDialog(
     currentData: FilterData,
+    types: List<FilterType>,
     onDismissRequest: () -> Unit,
     setFilter: (data: FilterData) -> Unit
 ) {
@@ -75,10 +76,10 @@ fun FilterDialog(
                     .padding(5.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                ColorRow(filterData = filterData)
+                ColorRow(filterData = filterData, types = types)
                 Divider()
                 Spacer(modifier = Modifier.height(5.dp))
-                FilterTypes(filterData = filterData)
+                FilterTypes(filterData = filterData, types = types)
                 DialogActionButtons(
                     onSave = {
                         setFilter(filterData.value)
@@ -94,7 +95,7 @@ fun FilterDialog(
 }
 
 @Composable
-private fun ColorRow(filterData: MutableState<FilterData>) {
+private fun ColorRow(filterData: MutableState<FilterData>, types: List<FilterType>) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -107,7 +108,7 @@ private fun ColorRow(filterData: MutableState<FilterData>) {
         ) { index ->
             val newFilterData = filterData.value.copy(colorIndex = index)
             if (filterData.value.type == FilterType.Color && index != null) {
-                newFilterData.type = FilterType.Edit
+                newFilterData.type = FilterType.Create
             }
             filterData.value = newFilterData
         }
@@ -186,7 +187,7 @@ private fun ColorFilterSpinnerItem(color: Color, clickable: () -> Unit) {
 }
 
 @Composable
-private fun FilterTypes(filterData: MutableState<FilterData>) {
+private fun FilterTypes(filterData: MutableState<FilterData>, types: List<FilterType>) {
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -199,10 +200,12 @@ private fun FilterTypes(filterData: MutableState<FilterData>) {
         }
 
         Spacer(modifier = Modifier.height(10.dp))
-        arrayListOf(FilterType.Create, FilterType.Edit)
+        arrayListOf<FilterType>()
             .apply {
-                if (filterData.value.colorIndex == null) {
-                    add(FilterType.Color)
+                types.map { filterType ->
+                    if (filterType != FilterType.Color || filterData.value.colorIndex == null) {
+                        add(filterType)
+                    }
                 }
             }
             .forEach { filterType ->

@@ -1,9 +1,6 @@
 package com.example.jetpacknotes.tasks
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,7 +25,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -37,7 +33,6 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -59,17 +54,16 @@ import com.example.jetpacknotes.myItems.ColorSpinner
 import com.example.jetpacknotes.myItems.DialogActionButtons
 import com.example.jetpacknotes.myItems.PlaceholderTextField
 import com.example.jetpacknotes.viewModels.MainAppViewModel
-import java.time.LocalDateTime
-import java.time.ZoneId
 import java.util.ArrayList
 
 @Composable
 fun TaskEditDialog(
-    taskState: MutableState<TaskForDialog?>,
-    mainAppViewModel: MainAppViewModel
+    task: Task?,
+    mainAppViewModel: MainAppViewModel,
+    onDismissRequest: () -> Unit
 ) {
-    val task = rememberSaveable {
-        mutableStateOf(taskState.value?.task ?: createTask(mainAppViewModel = mainAppViewModel))
+    val newTask = rememberSaveable {
+        mutableStateOf(task ?: createTask(mainAppViewModel = mainAppViewModel))
     }
     val openCategoriesDialog = rememberSaveable {
         mutableStateOf(false)
@@ -79,11 +73,11 @@ fun TaskEditDialog(
         CategoryDialog(
             openDialog = openCategoriesDialog,
             allCategoriesList = allCategories.value,
-            task = task
+            task = newTask
         )
     }
     Dialog(
-        onDismissRequest = { taskState.value = null },
+        onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         val scrollState = rememberScrollState()
@@ -105,22 +99,20 @@ fun TaskEditDialog(
                     .padding(5.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                TitleAndDone(task = task)
+                TitleAndDone(task = newTask)
                 ColorAndCategories(
-                    task = task,
+                    task = newTask,
                     openCategoriesDialog = openCategoriesDialog,
                     showCategoryButton = allCategories.value.isNotEmpty()
                 )
-                TaskDescription(task = task)
+                TaskDescription(task = newTask)
                 DialogActionButtons(
                     onSave = {
-                        mainAppViewModel.insertTask(task.value) {
-                            taskState.value = null
+                        mainAppViewModel.insertTask(newTask.value) {
+                            onDismissRequest()
                         }
                     },
-                    onCancel = {
-                        taskState.value = null
-                    }
+                    onCancel = onDismissRequest
                 )
             }
         }
@@ -147,9 +139,9 @@ private fun TaskDescription(
                 .padding(4.dp)
         ) {
             PlaceholderTextField(
-                value = task.value.description,
-                onValueChange = { description ->
-                    task.value = task.value.copy(description = description)
+                value = task.value.text,
+                onValueChange = { text ->
+                    task.value = task.value.copy(text = text)
                 },
                 hintText = "Описание"
             )
@@ -237,7 +229,7 @@ private fun createTask(mainAppViewModel: MainAppViewModel): Task {
     return Task(
         id = taskId,
         title = "",
-        description = "",
+        text = "",
         done = false,
         categories = "",
         colorIndex = 0

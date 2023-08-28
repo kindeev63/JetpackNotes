@@ -8,12 +8,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import com.example.jetpacknotes.db.Task
 import com.example.jetpacknotes.notes.NoteEditScreen
 import com.example.jetpacknotes.tasks.TaskEditDialog
-import com.example.jetpacknotes.tasks.TaskForDialog
 import com.example.jetpacknotes.viewModels.MainAppViewModel
 import kotlinx.coroutines.launch
 
@@ -41,19 +43,21 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun OpenTask(taskId: Int, mainAppViewModel: MainAppViewModel) {
-        val taskState = rememberSaveable {
-            mutableStateOf<TaskForDialog?>(null)
+        var task by rememberSaveable {
+            mutableStateOf<Task?>(null)
         }
         val scope = rememberCoroutineScope()
-        LaunchedEffect(true) {
+        LaunchedEffect(Unit) {
             scope.launch {
                 mainAppViewModel.getTaskById(taskId) {
-                    taskState.value = TaskForDialog(it)
+                    task = it
                 }
             }
         }
-        taskState.value?.task?.let {
-            TaskEditDialog(taskState = taskState, mainAppViewModel = mainAppViewModel)
+        task?.let {
+            TaskEditDialog(task = task, mainAppViewModel = mainAppViewModel, onDismissRequest = {
+                task = null
+            })
         }
     }
 

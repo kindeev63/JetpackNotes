@@ -48,8 +48,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import com.example.jetpacknotes.Colors
-import com.example.jetpacknotes.FilterData
-import com.example.jetpacknotes.FilterType
 import com.example.jetpacknotes.R
 import com.example.jetpacknotes.myItems.CategoryDialog
 import com.example.jetpacknotes.myItems.CategoryItem
@@ -61,6 +59,8 @@ import java.util.Locale
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.Dp
+import com.example.jetpacknotes.FilterData
+import com.example.jetpacknotes.FilterType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -73,8 +73,8 @@ fun NotesListScreen(
         factory = NotesListScreenViewModelFactory(mainAppViewModel)
     )
     val allNotes = mainAppViewModel.allNotes.observeAsState(emptyList())
-    val allCategories = mainAppViewModel.categoryOfNotes.observeAsState(listOf())
-    val selectedNotes = viewModel.selectedNotes.observeAsState(listOf())
+    val allCategories = mainAppViewModel.categoryOfNotes.observeAsState(emptyList())
+    val selectedNotes = viewModel.selectedNotes.observeAsState(emptyList())
 
     val category = viewModel.category.observeAsState()
     val searchText = viewModel.searchText.observeAsState()
@@ -103,6 +103,7 @@ fun NotesListScreen(
     if (openFilterDialog) {
         FilterDialog(
             currentData = filterData.value,
+            types = listOf(FilterType.Create, FilterType.Edit, FilterType.Color),
             onDismissRequest = { openFilterDialog = false },
             setFilter = viewModel::setFilterData
         )

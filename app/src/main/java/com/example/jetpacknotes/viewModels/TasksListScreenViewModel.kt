@@ -8,17 +8,41 @@ import androidx.compose.runtime.MutableState
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.example.jetpacknotes.FilterData
+import com.example.jetpacknotes.FilterType
 import com.example.jetpacknotes.db.Category
 import com.example.jetpacknotes.db.CategoryType
 import com.example.jetpacknotes.db.Task
 import com.example.jetpacknotes.receivers.AlarmReceiver
 
-class TasksListScreenViewModel(
-    private val mainAppViewModel: MainAppViewModel
-) : ViewModel() {
+class TasksListScreenViewModel(private val mainAppViewModel: MainAppViewModel) : ViewModel() {
     private val _selectedTasks = MutableLiveData<List<Task>>(emptyList())
     val selectedTasks: LiveData<List<Task>> = _selectedTasks
+    private val _filterData = MutableLiveData(FilterData(null, FilterType.Edit))
+    val filterData: LiveData<FilterData> = _filterData
+    private val _searchText = MutableLiveData<String?>(null)
+    val searchText: LiveData<String?> = _searchText
+    private val _category = MutableLiveData<Category?>(null)
+    val category: LiveData<Category?> = _category
 
+    fun checkCategory(category: Category?, allCategories: List<Category>) {
+        if (category == null) return
+        if (category !in allCategories) {
+            setCategory(allCategories.find { it.id == category.id })
+        }
+    }
+
+    fun search(searchText: String?) {
+        _searchText.value = searchText
+    }
+
+    fun setCategory(category: Category?) {
+        _category.value = category
+    }
+
+    fun setFilterData(filterData: FilterData) {
+        _filterData.value = filterData
+    }
 
     fun deleteCategory(category: Category) {
         mainAppViewModel.allTasks.value?.forEach { task ->
@@ -58,11 +82,37 @@ class TasksListScreenViewModel(
         }
     }
 
-    fun filterTasks(tasks: List<Task>, searchText: String?, category: Category?): List<Task> {
-        return tasks.filter { task ->
-            (if (category != null) category.id.toString() in task.categories.split(
-                " | "
-            ) else true) && task.title.lowercase().contains(searchText?.lowercase() ?: "")
+    fun filterTasks(
+        tasks: List<Task>,
+        category: Category?,
+        searchText: String?,
+        filterData: FilterData?
+    ): List<Task> {
+        val filteredTasks = tasks
+            // By category
+            .filter { task ->
+                category == null || task.categories.split(" | ")
+                    .contains(category.id.toString())
+            }
+            // By search text
+            .filter { task ->
+                task.title.lowercase().contains(searchText?.lowercase() ?: "")
+            }
+            // By color
+            .filter { task ->
+                filterData?.colorIndex == null || task.colorIndex == filterData.colorIndex
+            }.reversed()
+
+        // Ordering by filter type
+        return when (filterData?.type) {
+
+            FilterType.Color -> {
+                filteredTasks.sortedBy { it.colorIndex }
+            }
+
+            else -> {
+                filteredTasks
+            }
         }
     }
 
