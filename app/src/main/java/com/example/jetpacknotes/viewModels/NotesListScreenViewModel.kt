@@ -121,9 +121,6 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
 
         // Ordering by filter type
         return when (filterData?.type) {
-            null, FilterType.Create -> {
-                filteredNotes
-            }
 
             FilterType.Edit -> {
                 filteredNotes.sortedBy { it.lastEditTime }.reversed()
@@ -131,6 +128,10 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
 
             FilterType.Color -> {
                 filteredNotes.sortedBy { it.colorIndex }
+            }
+
+            else -> {
+                filteredNotes
             }
         }
     }

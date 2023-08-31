@@ -2,7 +2,10 @@ package com.example.jetpacknotes.notes
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
@@ -28,6 +32,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -47,20 +52,22 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import com.example.jetpacknotes.Colors
 import com.example.jetpacknotes.R
 import com.example.jetpacknotes.myItems.CategoryDialog
 import com.example.jetpacknotes.myItems.CategoryItem
 import com.example.jetpacknotes.myItems.FilterDialog
 import com.example.jetpacknotes.myItems.NoteItem
 import com.example.jetpacknotes.myItems.SearchItem
-import java.text.SimpleDateFormat
-import java.util.Locale
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import com.example.jetpacknotes.FilterData
 import com.example.jetpacknotes.FilterType
+import com.example.jetpacknotes.myItems.DragNoteItem
+import com.example.jetpacknotes.myItems.GhostNoteData
+import com.example.jetpacknotes.myItems.GhostNoteItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -103,7 +110,7 @@ fun NotesListScreen(
     if (openFilterDialog) {
         FilterDialog(
             currentData = filterData.value,
-            types = listOf(FilterType.Create, FilterType.Edit, FilterType.Color),
+            types = listOf(FilterType.Create, FilterType.Edit, FilterType.Color, FilterType.Hand),
             onDismissRequest = { openFilterDialog = false },
             setFilter = viewModel::setFilterData
         )
@@ -177,23 +184,40 @@ fun NotesListScreen(
                     }
                 }
             ) {
-                val notesList = viewModel.filterNotes(
-                    notes = allNotes.value,
-                    category = category.value,
-                    searchText = searchText.value,
-                    filterData = filterData.value
-                )
-                NotesList(
-                    notesList = notesList,
-                    selectedNotes = selectedNotes.value,
-                    onClick = { note, long ->
-                        if (long || selectedNotes.value.isNotEmpty()) {
-                            viewModel.changeSelectionStateOf(note)
-                        } else {
-                            navigateWhenNoteClicked(note.id)
-                        }
-                    },
-                )
+                if (filterData.value.type != FilterType.Hand) {
+                    val notesList = viewModel.filterNotes(
+                        notes = allNotes.value,
+                        category = category.value,
+                        searchText = searchText.value,
+                        filterData = filterData.value
+                    )
+                    NotesList(
+                        notesList = notesList,
+                        selectedNotes = selectedNotes.value,
+                        onClick = { note, long ->
+                            if (long || selectedNotes.value.isNotEmpty()) {
+                                viewModel.changeSelectionStateOf(note)
+                            } else {
+                                navigateWhenNoteClicked(note.id)
+                            }
+                        },
+                    )
+                } else {
+                    val notesList = rememberSaveable {
+                        mutableStateOf(allNotes.value)
+                    }
+                    DragNotesList(
+                        notesList = notesList,
+                        selectedNotes = selectedNotes.value,
+                        onClick = { note, long ->
+                            if (long || selectedNotes.value.isNotEmpty()) {
+                                viewModel.changeSelectionStateOf(note)
+                            } else {
+                                navigateWhenNoteClicked(note.id)
+                            }
+                        },
+                    )
+                }
             }
         }
     }
@@ -307,17 +331,12 @@ private fun NotesList(
     selectedNotes: List<Note>,
     onClick: (Note, Boolean) -> Unit,
 ) {
-    val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
     LazyColumn {
         items(items = notesList,
             key = { it.id }
         ) { note ->
             NoteItem(
-                title = note.title,
-                time = timeFormatter.format(note.lastEditTime),
-                date = dateFormatter.format(note.lastEditTime),
-                color = Colors.colors[note.colorIndex],
+                note = note,
                 selected = note in selectedNotes,
                 onClick = {
                     onClick(note, false)
@@ -330,4 +349,97 @@ private fun NotesList(
     }
 }
 
+@Composable
+private fun DragNotesList(
+    notesList: MutableState<List<Note>>,
+    selectedNotes: List<Note>,
+    onClick: (Note, Boolean) -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+        var ghostNote by remember {
+            mutableStateOf<GhostNoteData?>(null)
+        }
+        val state = rememberLazyListState()
+        val d = LocalDensity.current
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            state = state,
+        ) {
+            items(
+                items = notesList.value,
+                key = { it.id }
+            ) { note ->
+                var offsetY by remember { mutableStateOf(0f) }
+                var move by remember { mutableStateOf(false) }
+                var dragStartPosition by remember { mutableStateOf(0f) }
+                val scope = rememberCoroutineScope()
+                var firstItemIndex = remember { state.firstVisibleItemIndex }
+                var firstItemOffset = remember { state.firstVisibleItemScrollOffset }
+                DragNoteItem(
+                    note = note,
+                    offsetY = offsetY,
+                    move = move,
+                    selected = selectedNotes.contains(note),
+                    onDragStart = {
+                        dragStartPosition = it / d.density
+                        move = true
+                        firstItemIndex = state.firstVisibleItemIndex
+                        firstItemOffset = state.firstVisibleItemScrollOffset
+                    },
+                    onVerticalDrag = { positionY ->
+                        if (state.firstVisibleItemIndex != firstItemIndex || state.firstVisibleItemScrollOffset != firstItemOffset) {
+                            scope.launch {
+                                state.scrollToItem(firstItemIndex, firstItemOffset)
+                            }
+                        } else {
+                            val positionOffset =
+                                (offsetY / 80).toInt()
+                            val newIndex = positionOffset + notesList.value.indexOf(note)
+                            if (positionOffset != 0 && newIndex in notesList.value.indices) {
+                                offsetY -= positionOffset * 80
+                                notesList.value = ArrayList(notesList.value).apply {
+                                    remove(note)
+                                    add(newIndex, note)
+                                }.toList()
+                            } else {
+                                offsetY += positionY / d.density - dragStartPosition
+                            }
+                            val yPosition =
+                                (notesList.value.indexOf(note) - state.firstVisibleItemIndex) * 80 + offsetY - state.firstVisibleItemScrollOffset / d.density
+                            ghostNote = GhostNoteData(
+                                note = note,
+                                offsetY = yPosition
+                            )
+                        }
 
+                    },
+                    onDragEnd = {
+                        move = false
+                        ghostNote = null
+                        scope.launch {
+                            animate(
+                                initialValue = offsetY,
+                                targetValue = 0f,
+                                animationSpec = spring()
+                            ) { value, _ ->
+                                offsetY = value
+                            }
+                        }
+                    },
+                    onClick = { onClick(note, false) },
+                    onLongClick = { onClick(note, true) }
+                )
+            }
+        }
+        ghostNote?.let { noteData ->
+            GhostNoteItem(
+                note = noteData.note,
+                offsetY = noteData.offsetY,
+                selected = selectedNotes.contains(noteData.note)
+            )
+        }
+    }
+}

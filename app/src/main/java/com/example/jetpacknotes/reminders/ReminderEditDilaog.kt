@@ -783,13 +783,8 @@ private fun PickNoteDialog(
                         items = allNotes.value.filterNotesByTitle(searchText),
                         key = { it.id }
                     ) { note ->
-                        val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
-                        val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
                         NoteItem(
-                            title = note.title,
-                            time = timeFormatter.format(note.lastEditTime),
-                            date = dateFormatter.format(note.lastEditTime),
-                            color = Colors.colors[note.colorIndex],
+                            note = note,
                             selected = false,
                             onClick = {
                                 reminder.value = reminder.value.copy(noteId = note.id)

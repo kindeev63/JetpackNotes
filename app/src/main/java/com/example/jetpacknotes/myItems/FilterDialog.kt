@@ -76,7 +76,7 @@ fun FilterDialog(
                     .padding(5.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                ColorRow(filterData = filterData, types = types)
+                ColorRow(filterData = filterData)
                 Divider()
                 Spacer(modifier = Modifier.height(5.dp))
                 FilterTypes(filterData = filterData, types = types)
@@ -95,7 +95,7 @@ fun FilterDialog(
 }
 
 @Composable
-private fun ColorRow(filterData: MutableState<FilterData>, types: List<FilterType>) {
+private fun ColorRow(filterData: MutableState<FilterData>) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -194,7 +194,7 @@ private fun FilterTypes(filterData: MutableState<FilterData>, types: List<Filter
         Row(modifier = Modifier.fillMaxWidth()) {
             Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = "Сортировать по:",
+                text = "Сортировать:",
                 fontSize = 16.sp
             )
         }
