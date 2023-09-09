@@ -36,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -56,6 +57,7 @@ import com.example.jetpacknotes.myItems.PlaceholderTextField
 import com.example.jetpacknotes.viewModels.MainAppViewModel
 import java.util.ArrayList
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun TaskEditDialog(
     task: Task?,

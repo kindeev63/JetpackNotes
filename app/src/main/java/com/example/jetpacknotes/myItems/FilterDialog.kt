@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -40,11 +41,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.jetpacknotes.Colors
 import com.example.jetpacknotes.FilterData
 import com.example.jetpacknotes.FilterType
 import com.example.jetpacknotes.R
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun FilterDialog(
     currentData: FilterData,
@@ -55,7 +58,10 @@ fun FilterDialog(
     val filterData = rememberSaveable {
         mutableStateOf(currentData)
     }
-    Dialog(onDismissRequest = onDismissRequest) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         val scrollState = rememberScrollState()
         Box(
             modifier = Modifier
@@ -210,7 +216,12 @@ private fun FilterTypes(filterData: MutableState<FilterData>, types: List<Filter
             }
             .forEach { filterType ->
                 val selected = filterData.value.type == filterType
-                FilterTypeItem(selected = selected, text = filterType.name) {
+                FilterTypeItem(selected = selected, text = when(filterType) {
+                    FilterType.Create -> "по времени создания"
+                    FilterType.Edit -> "по времени редактирования"
+                    FilterType.Color -> "по цвету"
+                    FilterType.Hand -> "вручную"
+                }) {
                     if (!selected) {
                         filterData.value = filterData.value.copy(type = filterType)
                     }

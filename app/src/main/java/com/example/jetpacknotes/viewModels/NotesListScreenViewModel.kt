@@ -7,18 +7,20 @@ import android.content.Intent
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.jetpacknotes.DataStoreManager
 import com.example.jetpacknotes.FilterData
 import com.example.jetpacknotes.FilterType
 import com.example.jetpacknotes.db.Category
 import com.example.jetpacknotes.db.CategoryType
 import com.example.jetpacknotes.db.Note
 import com.example.jetpacknotes.receivers.AlarmReceiver
+import kotlinx.coroutines.launch
 
-class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) : ViewModel() {
+class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
+    ViewModel() {
     private val _selectedNotes = MutableLiveData<List<Note>>(emptyList())
     val selectedNotes: LiveData<List<Note>> = _selectedNotes
-    private val _filterData = MutableLiveData(FilterData(null, FilterType.Edit))
-    val filterData: LiveData<FilterData> = _filterData
     private val _searchText = MutableLiveData<String?>(null)
     val searchText: LiveData<String?> = _searchText
     private val _category = MutableLiveData<Category?>(null)
@@ -37,10 +39,6 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
 
     fun setCategory(category: Category?) {
         _category.value = category
-    }
-
-    fun setFilterData(filterData: FilterData) {
-        _filterData.value = filterData
     }
 
     fun changeSelectionStateOf(note: Note) {
@@ -151,4 +149,66 @@ class NotesListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
         mainAppViewModel.deleteCategory(category)
     }
 
+    fun checkHandNotes(allNotes: List<Note>, data: String?): String {
+        if (data.isNullOrEmpty()) {
+            return allNotes.map { it.id }.joinToString(separator = " | ")
+        } else {
+            val notesIds = allNotes.map { it.id }
+            val dataIds = ArrayList(data.split(" | ").map { it.toInt() })
+            notesIds.reversed().forEach { noteId ->
+                if (!dataIds.contains(noteId)) {
+                    dataIds.add(0, noteId)
+                }
+            }
+            dataIds.forEach { handNoteId ->
+                if (!notesIds.contains(handNoteId)) {
+                    dataIds.remove(handNoteId)
+                }
+            }
+            return dataIds.joinToString(separator = " | ")
+        }
+    }
+
+    fun filterNotesHandSort(
+        notes: List<Note>,
+        category: Category?,
+        searchText: String?,
+        filterData: FilterData?
+    ): List<Note> {
+        val filteredNotes = notes
+            // By category
+            .filter { note ->
+                category == null || note.categories.split(" | ")
+                    .contains(category.id.toString())
+            }
+            // By search text
+            .filter { note ->
+                note.title.lowercase().contains(searchText?.lowercase() ?: "")
+            }
+            // By color
+            .filter { note ->
+                filterData?.colorIndex == null || note.colorIndex == filterData.colorIndex
+            }.reversed()
+
+        // By hand notes
+        return arrayListOf<Note>().apply {
+            filterData?.data?.split(" | ")?.map { it.toInt() }?.forEach { id ->
+                filteredNotes.find { note -> note.id == id }?.let { note ->
+                    add(note)
+                }
+            }
+        }.toList()
+    }
+
+    fun moveHandNote(data: String?, id: Int, index: Int): String {
+        val ids = ArrayList(data?.split(" | ")?.map { it.toInt() } ?: emptyList())
+        ids.remove(id)
+        ids.add(index, id)
+        return ids.joinToString(" | ")
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+
+    }
 }
