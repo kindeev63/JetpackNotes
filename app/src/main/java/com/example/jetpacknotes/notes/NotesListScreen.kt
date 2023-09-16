@@ -2,7 +2,6 @@ package com.example.jetpacknotes.notes
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
-import android.util.Log
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
@@ -63,6 +62,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.Dp
 import com.example.jetpacknotes.DataStoreManager
 import com.example.jetpacknotes.FilterData
@@ -70,7 +70,6 @@ import com.example.jetpacknotes.FilterType
 import com.example.jetpacknotes.myItems.DragNoteItem
 import com.example.jetpacknotes.myItems.GhostNoteData
 import com.example.jetpacknotes.myItems.GhostNoteItem
-import java.util.logging.Filter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "CoroutineCreationDuringComposition")
@@ -83,36 +82,37 @@ fun NotesListScreen(
         factory = NotesListScreenViewModelFactory(mainAppViewModel)
     )
     val allNotes = mainAppViewModel.allNotes.observeAsState(emptyList())
+    mainAppViewModel.allNotes.observe(LocalLifecycleOwner.current) {
+        viewModel.filterNotes()
+    }
     val allCategories = mainAppViewModel.categoryOfNotes.observeAsState(emptyList())
     val selectedNotes = viewModel.selectedNotes.observeAsState(emptyList())
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val dataStoreManager = remember { DataStoreManager(context) }
-    var filterData by rememberSaveable {
-        mutableStateOf<FilterData?>(null)
-    }
     LaunchedEffect(Unit) {
-        dataStoreManager.getFilterData().collect { filDataNullable ->
-            val filData = filDataNullable ?: FilterData(
-                colorIndex = null,
-                type = FilterType.Create
-            )
-            val checkedData = viewModel.checkHandNotes(
-                allNotes = allNotes.value,
-                data = filData.data
-            )
-            val checkedFilterData = filData.copy(data = checkedData)
-            if (filDataNullable?.data != checkedData) {
-                scope.launch {
-                    dataStoreManager.saveFilterData(checkedFilterData)
+            dataStoreManager.getFilterData().collect { filDataNullable ->
+                val filData = filDataNullable ?: FilterData(
+                    colorIndex = null,
+                    type = FilterType.Create
+                )
+                val checkedData = viewModel.checkHandNotes(
+                    allNotes = allNotes.value,
+                    data = filData.data
+                )
+                val checkedFilterData = filData.copy(data = checkedData)
+                if (filDataNullable?.data != checkedData) {
+                    scope.launch {
+                        dataStoreManager.saveFilterData(checkedFilterData)
+                    }
                 }
+                viewModel.setFilterData(checkedFilterData)
             }
-            filterData = checkedFilterData
         }
-    }
 
     val category = viewModel.category.observeAsState()
     val searchText = viewModel.searchText.observeAsState()
+    val filterData = viewModel.filterData.observeAsState()
 
     viewModel.checkCategory(category.value, allCategories.value)
     var openCategoryDialog by rememberSaveable {
@@ -134,17 +134,17 @@ fun NotesListScreen(
         mutableStateOf(false)
     }
     if (openFilterDialog) {
-        filterData?.let {filData ->
+        filterData.value?.let {filData ->
             FilterDialog(
                 currentData = filData,
                 types = listOf(FilterType.Create, FilterType.Edit, FilterType.Color, FilterType.Hand),
                 onDismissRequest = { openFilterDialog = false },
                 setFilter = {
-                    val newFilterData = it.copy(data = filterData!!.data)
+                    val newFilterData = it.copy(data = filterData.value?.data)
                     scope.launch {
                         dataStoreManager.saveFilterData(newFilterData)
                     }
-                    filterData = newFilterData
+                    viewModel.setFilterData(newFilterData)
                 }
             )
         }
@@ -217,16 +217,9 @@ fun NotesListScreen(
                     }
                 }
             ) {
-                if (filterData?.type != FilterType.Hand) {
-                    val notesList = viewModel.filterNotes(
-                        notes = allNotes.value,
-                        category = category.value,
-                        searchText = searchText.value,
-                        filterData = filterData
-                    )
+                if (filterData.value?.type != FilterType.Hand) {
                     NotesList(
-                        notesList = notesList,
-                        selectedNotes = selectedNotes.value,
+                        viewModel = viewModel,
                         onClick = { note, long ->
                             if (long || selectedNotes.value.isNotEmpty()) {
                                 viewModel.changeSelectionStateOf(note)
@@ -236,27 +229,20 @@ fun NotesListScreen(
                         },
                     )
                 } else {
-                    val handNotes = filterData!!.data
-                    handNotes?.let {
+                    filterData.value?.let {
                         DragNotesList(
-                            notesList = viewModel.filterNotesHandSort(
-                                notes = allNotes.value,
-                                filterData = filterData,
-                                category = category.value,
-                                searchText = searchText.value,
-                            ),
-                            selectedNotes = selectedNotes.value,
+                            viewModel = viewModel,
                             moveNote = { note, index ->
                                     val newData = viewModel.moveHandNote(
-                                        data = filterData?.data,
+                                        data = filterData.value?.data,
                                         index = index,
                                         id = note.id
                                     )
-                                val newFilterData = filterData?.copy(data = newData)
+                                val newFilterData = filterData.value?.copy(data = newData)
                                 scope.launch {
                                     dataStoreManager.saveFilterData(newFilterData!!)
                                 }
-                                filterData = newFilterData
+                                viewModel.setFilterData(newFilterData)
                             },
                             onClick = { note, long ->
                                 if (long || selectedNotes.value.isNotEmpty()) {
@@ -378,10 +364,11 @@ private fun CategoriesList(
 
 @Composable
 private fun NotesList(
-    notesList: List<Note>,
-    selectedNotes: List<Note>,
+    viewModel: NotesListScreenViewModel,
     onClick: (Note, Boolean) -> Unit,
 ) {
+    val notesList by viewModel.notesList.observeAsState(emptyList())
+    val selectedNotes by viewModel.selectedNotes.observeAsState(emptyList())
     LazyColumn {
         items(items = notesList,
             key = { it.id }
@@ -402,11 +389,12 @@ private fun NotesList(
 
 @Composable
 private fun DragNotesList(
-    notesList: List<Note>,
-    selectedNotes: List<Note>,
+    viewModel: NotesListScreenViewModel,
     moveNote: (Note, Int) -> Unit,
     onClick: (Note, Boolean) -> Unit
 ) {
+    val notesList by viewModel.notesList.observeAsState(emptyList())
+    val selectedNotes by viewModel.selectedNotes.observeAsState(emptyList())
     Box(
         modifier = Modifier
             .fillMaxSize()
