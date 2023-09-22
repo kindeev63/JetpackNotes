@@ -12,18 +12,23 @@ import com.example.jetpacknotes.FilterData
 import com.example.jetpacknotes.FilterType
 import com.example.jetpacknotes.db.Category
 import com.example.jetpacknotes.db.CategoryType
+import com.example.jetpacknotes.db.Note
 import com.example.jetpacknotes.db.Task
 import com.example.jetpacknotes.receivers.AlarmReceiver
 
 class TasksListScreenViewModel(private val mainAppViewModel: MainAppViewModel) : ViewModel() {
     private val _selectedTasks = MutableLiveData<List<Task>>(emptyList())
     val selectedTasks: LiveData<List<Task>> = _selectedTasks
-    private val _filterData = MutableLiveData(FilterData(null, FilterType.Edit))
-    val filterData: LiveData<FilterData> = _filterData
     private val _searchText = MutableLiveData<String?>(null)
     val searchText: LiveData<String?> = _searchText
     private val _category = MutableLiveData<Category?>(null)
     val category: LiveData<Category?> = _category
+
+    private val _filterData = MutableLiveData<FilterData?>(null)
+    val filterData: LiveData<FilterData?> = _filterData
+
+    private val _tasksList = MutableLiveData<List<Task>>(emptyList())
+    val tasksList: LiveData<List<Task>> = _tasksList
 
     fun checkCategory(category: Category?, allCategories: List<Category>) {
         if (category == null) return
@@ -32,16 +37,33 @@ class TasksListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
         }
     }
 
+    fun setFilterData(filterData: FilterData?) {
+        _filterData.value = filterData
+        filterTasks()
+    }
+
     fun search(searchText: String?) {
         _searchText.value = searchText
+        filterTasks()
     }
 
     fun setCategory(category: Category?) {
         _category.value = category
+        filterTasks()
     }
 
-    fun setFilterData(filterData: FilterData) {
-        _filterData.value = filterData
+    fun changeSelectionStateOf(task: Task) {
+        _selectedTasks.value?.let { selTasks ->
+            if (task in selTasks) {
+                _selectedTasks.value = ArrayList(selTasks).apply {
+                    remove(task)
+                }
+            } else {
+                _selectedTasks.value = ArrayList(selTasks).apply {
+                    add(task)
+                }
+            }
+        }
     }
 
     fun deleteCategory(category: Category) {
@@ -69,32 +91,45 @@ class TasksListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
         return Category(categoryId, "", CategoryType.Task)
     }
 
-    fun filterTasks(
-        tasks: List<Task>,
-        category: Category?,
-        searchText: String?,
-        filterData: FilterData?
-    ): List<Task> {
-        val filteredTasks = tasks
+    fun filterTasks() {
+        val filteredTasks = (mainAppViewModel.allTasks.value ?: emptyList())
             // By category
             .filter { task ->
-                category == null || task.categories.split(" | ")
-                    .contains(category.id.toString())
+                category.value == null || task.categories.split(" | ")
+                    .contains(category.value?.id.toString())
             }
             // By search text
             .filter { task ->
-                task.title.lowercase().contains(searchText?.lowercase() ?: "")
+                task.title.lowercase().contains(searchText.value?.lowercase() ?: "")
             }
             // By color
             .filter { task ->
-                filterData?.colorIndex == null || task.colorIndex == filterData.colorIndex
+                filterData.value?.colorIndex == null || task.colorIndex == filterData.value?.colorIndex
             }.reversed()
 
         // Ordering by filter type
-        return when (filterData?.type) {
+        _tasksList.value = when (filterData.value?.type) {
+
+            FilterType.Create -> {
+                filteredTasks
+            }
+
+            FilterType.Edit -> {
+                filteredTasks.sortedBy { it.lastEditTime }.reversed()
+            }
 
             FilterType.Color -> {
                 filteredTasks.sortedBy { it.colorIndex }
+            }
+
+            FilterType.Hand -> {
+                arrayListOf<Task>().apply {
+                    filterData.value?.data?.split(" | ")?.map { it.toInt() }?.forEach { id ->
+                        filteredTasks.find { note -> note.id == id }?.let { note ->
+                            add(note)
+                        }
+                    }
+                }.toList()
             }
 
             else -> {
@@ -103,19 +138,6 @@ class TasksListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
         }
     }
 
-    fun changeSelectionStateOf(task: Task) {
-        _selectedTasks.value?.let { selTasks ->
-            if (task in selTasks) {
-                _selectedTasks.value = ArrayList(selTasks).apply {
-                    remove(task)
-                }
-            } else {
-                _selectedTasks.value = ArrayList(selTasks).apply {
-                    add(task)
-                }
-            }
-        }
-    }
 
     fun deleteSelectedTasks(context: Context) {
         selectedTasks.value?.let { tasks ->
@@ -146,5 +168,47 @@ class TasksListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_CANCEL_CURRENT
         )
         alarmManager.cancel(pendingIntent)
+    }
+
+    fun checkHandTasks(allTasks: List<Task>, data: String?): String? {
+        if (allTasks.isEmpty()) {
+            return null
+        }
+        if (data.isNullOrEmpty()) {
+            return allTasks.map { it.id }.joinToString(separator = " | ")
+        }
+        val tasksIds = allTasks.map { it.id }
+        val dataIds = ArrayList(data.split(" | ").map { it.toInt() })
+        tasksIds.reversed().forEach { taskId ->
+            if (!dataIds.contains(taskId)) {
+                dataIds.add(0, taskId)
+            }
+        }
+        dataIds.forEach { handTaskId ->
+            if (!tasksIds.contains(handTaskId)) {
+                dataIds.remove(handTaskId)
+            }
+        }
+        val doneTasksIds = allTasks.filter { it.done }.map { it.id }
+        val resultTasksIds = arrayListOf<Int>().apply {
+            dataIds.forEach { id ->
+                if (!doneTasksIds.contains(id)) {
+                    add(id)
+                }
+            }
+            dataIds.forEach { id ->
+                if (doneTasksIds.contains(id)) {
+                    add(id)
+                }
+            }
+        }
+        return resultTasksIds.joinToString(separator = " | ")
+    }
+
+    fun moveHandTask(data: String?, id: Int, index: Int): String {
+        val ids = ArrayList(data?.split(" | ")?.map { it.toInt() } ?: emptyList())
+        ids.remove(id)
+        ids.add(index, id)
+        return ids.joinToString(" | ")
     }
 }

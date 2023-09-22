@@ -941,9 +941,7 @@ private fun PickTaskDialog(
                         key = { it.id }
                     ) { task ->
                         TaskItem(
-                            title = task.title,
-                            color = Colors.colors[task.colorIndex],
-                            done = task.done,
+                            task = task,
                             selected = false,
                             onClick = {
                                 reminder.value = reminder.value.copy(taskId = task.id)

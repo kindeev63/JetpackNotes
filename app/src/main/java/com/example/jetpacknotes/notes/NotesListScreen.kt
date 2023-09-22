@@ -75,8 +75,7 @@ import com.example.jetpacknotes.myItems.GhostNoteItem
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "CoroutineCreationDuringComposition")
 @Composable
 fun NotesListScreen(
-    mainAppViewModel: MainAppViewModel,
-    navigateWhenNoteClicked: (Int?) -> Unit
+    mainAppViewModel: MainAppViewModel, navigateWhenNoteClicked: (Int?) -> Unit
 ) {
     val viewModel: NotesListScreenViewModel = viewModel(
         factory = NotesListScreenViewModelFactory(mainAppViewModel)
@@ -91,24 +90,22 @@ fun NotesListScreen(
     val scope = rememberCoroutineScope()
     val dataStoreManager = remember { DataStoreManager(context) }
     LaunchedEffect(Unit) {
-            dataStoreManager.getFilterData().collect { filDataNullable ->
-                val filData = filDataNullable ?: FilterData(
-                    colorIndex = null,
-                    type = FilterType.Create
-                )
-                val checkedData = viewModel.checkHandNotes(
-                    allNotes = allNotes.value,
-                    data = filData.data
-                )
-                val checkedFilterData = filData.copy(data = checkedData)
-                if (filDataNullable?.data != checkedData) {
-                    scope.launch {
-                        dataStoreManager.saveFilterData(checkedFilterData)
-                    }
+        dataStoreManager.getNotesFilterData().collect { filDataNullable ->
+            val filData = filDataNullable ?: FilterData(
+                colorIndex = null, type = FilterType.Create
+            )
+            val checkedData = viewModel.checkHandNotes(
+                allNotes = allNotes.value, data = filData.data
+            )
+            val checkedFilterData = filData.copy(data = checkedData)
+            if (filDataNullable?.data != checkedData) {
+                scope.launch {
+                    dataStoreManager.saveNotesFilterData(checkedFilterData)
                 }
-                viewModel.setFilterData(checkedFilterData)
             }
+            viewModel.setFilterData(checkedFilterData)
         }
+    }
 
     val category = viewModel.category.observeAsState()
     val searchText = viewModel.searchText.observeAsState()
@@ -119,43 +116,39 @@ fun NotesListScreen(
         mutableStateOf<Category?>(null)
     }
     openCategoryDialog?.let {
-        CategoryDialog(
-            category = it,
+        CategoryDialog(category = it,
             insertCategory = mainAppViewModel::insertCategory,
             deleteCategory = viewModel::deleteCategory,
             onDismissReqest = {
                 openCategoryDialog = null
-            }
-        )
+            })
     }
-
 
     var openFilterDialog by rememberSaveable {
         mutableStateOf(false)
     }
     if (openFilterDialog) {
-        filterData.value?.let {filData ->
+        filterData.value?.let { filData ->
             FilterDialog(
                 currentData = filData,
-                types = listOf(FilterType.Create, FilterType.Edit, FilterType.Color, FilterType.Hand),
+                types = listOf(
+                    FilterType.Create, FilterType.Edit, FilterType.Color, FilterType.Hand
+                ),
                 onDismissRequest = { openFilterDialog = false },
                 setFilter = {
                     val newFilterData = it.copy(data = filterData.value?.data)
                     scope.launch {
-                        dataStoreManager.saveFilterData(newFilterData)
+                        dataStoreManager.saveNotesFilterData(newFilterData)
                     }
                     viewModel.setFilterData(newFilterData)
-                }
-            )
+                })
         }
-
     }
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-        NotesListAppBar(
-            title = category.value?.name ?: "All Notes",
+        NotesListAppBar(title = category.value?.name ?: "All Notes",
             showDeleteButton = selectedNotes.value.isNotEmpty(),
             searchText = searchText.value,
             onSearch = viewModel::search,
@@ -167,56 +160,46 @@ fun NotesListScreen(
                 }
             },
             onFilterButtonClicked = { openFilterDialog = true },
-            onDeleteButtonClicked = { viewModel.deleteSelectedNotes(context) }
-        )
-        Scaffold(
-            floatingActionButton = {
-                FloatingActionButton(onClick = {
-                    navigateWhenNoteClicked(null)
-                }) {
-                    Icon(Icons.Filled.Add, contentDescription = null)
-                }
+            onDeleteButtonClicked = { viewModel.deleteSelectedNotes(context) })
+        Scaffold(floatingActionButton = {
+            FloatingActionButton(onClick = {
+                navigateWhenNoteClicked(null)
+            }) {
+                Icon(Icons.Filled.Add, contentDescription = null)
             }
-        ) {
-            ModalNavigationDrawer(
-                drawerState = drawerState,
-                drawerContent = {
-                    ModalDrawerSheet(
-                        modifier = Modifier.width(getDrawerWidth())
-                    ) {
-                        DrawerHeader(
-                            onClickAdd = {
-                                openCategoryDialog = viewModel.createCategory()
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        val setNullCategory: () -> Unit = {
-                            viewModel.setCategory(null)
-                            scope.launch {
-                                drawerState.close()
-                            }
+        }) {
+            ModalNavigationDrawer(drawerState = drawerState, drawerContent = {
+                ModalDrawerSheet(
+                    modifier = Modifier.width(getDrawerWidth())
+                ) {
+                    DrawerHeader(onClickAdd = {
+                        openCategoryDialog = viewModel.createCategory()
+                    })
+                    Spacer(modifier = Modifier.height(10.dp))
+                    val setNullCategory: () -> Unit = {
+                        viewModel.setCategory(null)
+                        scope.launch {
+                            drawerState.close()
                         }
-                        CategoryItem(
-                            name = "Все заметки",
-                            onClick = setNullCategory,
-                            onLongClick = setNullCategory
-                        )
-                        CategoriesList(
-                            categoriesList = allCategories.value,
-                            onClick = { category, long ->
-                                if (long) {
-                                    openCategoryDialog = category.copy()
-                                } else {
-                                    viewModel.setCategory(category)
-                                    scope.launch {
-                                        drawerState.close()
-                                    }
+                    }
+                    CategoryItem(
+                        name = "Все заметки",
+                        onClick = setNullCategory,
+                        onLongClick = setNullCategory
+                    )
+                    CategoriesList(categoriesList = allCategories.value,
+                        onClick = { category, long ->
+                            if (long) {
+                                openCategoryDialog = category.copy()
+                            } else {
+                                viewModel.setCategory(category)
+                                scope.launch {
+                                    drawerState.close()
                                 }
                             }
-                        )
-                    }
+                        })
                 }
-            ) {
+            }) {
                 if (filterData.value?.type != FilterType.Hand) {
                     NotesList(
                         viewModel = viewModel,
@@ -233,14 +216,12 @@ fun NotesListScreen(
                         DragNotesList(
                             viewModel = viewModel,
                             moveNote = { note, index ->
-                                    val newData = viewModel.moveHandNote(
-                                        data = filterData.value?.data,
-                                        index = index,
-                                        id = note.id
-                                    )
+                                val newData = viewModel.moveHandNote(
+                                    data = filterData.value?.data, index = index, id = note.id
+                                )
                                 val newFilterData = filterData.value?.copy(data = newData)
                                 scope.launch {
-                                    dataStoreManager.saveFilterData(newFilterData!!)
+                                    dataStoreManager.saveNotesFilterData(newFilterData!!)
                                 }
                                 viewModel.setFilterData(newFilterData)
                             },
@@ -288,9 +269,7 @@ private fun NotesListAppBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             SearchItem(
-                modifier = Modifier.weight(1f),
-                value = searchText,
-                onValueChange = onSearch
+                modifier = Modifier.weight(1f), value = searchText, onValueChange = onSearch
             )
             IconButton(onClick = onFilterButtonClicked) {
                 Icon(painterResource(id = R.drawable.ic_filter), contentDescription = null)
@@ -307,10 +286,8 @@ private fun NotesListAppBar(
 @Composable
 private fun getDrawerWidth(): Dp {
     val screenSize =
-        if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT)
-            LocalConfiguration.current.screenWidthDp
-        else
-            LocalConfiguration.current.screenHeightDp
+        if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) LocalConfiguration.current.screenWidthDp
+        else LocalConfiguration.current.screenHeightDp
     return (screenSize / 5 * 4).dp
 }
 
@@ -323,18 +300,13 @@ private fun DrawerHeader(onClickAdd: () -> Unit) {
     ) {
         Spacer(modifier = Modifier.width(10.dp))
         Text(
-            text = "Категории",
-            color = Color.Black,
-            fontSize = 22.sp
+            text = "Категории", color = Color.Black, fontSize = 22.sp
         )
         IconButton(
-            modifier = Modifier.size(60.dp),
-            onClick = onClickAdd
+            modifier = Modifier.size(60.dp), onClick = onClickAdd
         ) {
             Icon(
-                Icons.Filled.Add,
-                modifier = Modifier.size(40.dp),
-                contentDescription = null
+                Icons.Filled.Add, modifier = Modifier.size(40.dp), contentDescription = null
             )
         }
     }
@@ -346,18 +318,12 @@ private fun CategoriesList(
     onClick: (Category, Boolean) -> Unit,
 ) {
     LazyColumn {
-        items(items = categoriesList,
-            key = { it.id }
-        ) { category ->
-            CategoryItem(
-                name = category.name,
-                onClick = {
-                    onClick(category, false)
-                },
-                onLongClick = {
-                    onClick(category, true)
-                }
-            )
+        items(items = categoriesList, key = { it.id }) { category ->
+            CategoryItem(name = category.name, onClick = {
+                onClick(category, false)
+            }, onLongClick = {
+                onClick(category, true)
+            })
         }
     }
 }
@@ -370,19 +336,12 @@ private fun NotesList(
     val notesList by viewModel.notesList.observeAsState(emptyList())
     val selectedNotes by viewModel.selectedNotes.observeAsState(emptyList())
     LazyColumn {
-        items(items = notesList,
-            key = { it.id }
-        ) { note ->
-            NoteItem(
-                note = note,
-                selected = note in selectedNotes,
-                onClick = {
-                    onClick(note, false)
-                },
-                onLongClick = {
-                    onClick(note, true)
-                }
-            )
+        items(items = notesList, key = { it.id }) { note ->
+            NoteItem(note = note, selected = note in selectedNotes, onClick = {
+                onClick(note, false)
+            }, onLongClick = {
+                onClick(note, true)
+            })
         }
     }
 }
@@ -396,8 +355,7 @@ private fun DragNotesList(
     val notesList by viewModel.notesList.observeAsState(emptyList())
     val selectedNotes by viewModel.selectedNotes.observeAsState(emptyList())
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
         var ghostNote by remember {
             mutableStateOf<GhostNoteData?>(null)
@@ -408,18 +366,14 @@ private fun DragNotesList(
             modifier = Modifier.fillMaxSize(),
             state = state,
         ) {
-            items(
-                items = notesList,
-                key = { it.id }
-            ) { note ->
+            items(items = notesList, key = { it.id }) { note ->
                 var offsetY by remember { mutableStateOf(0f) }
                 var move by remember { mutableStateOf(false) }
                 var dragStartPosition by remember { mutableStateOf(0f) }
                 val scope = rememberCoroutineScope()
                 var firstItemIndex = remember { state.firstVisibleItemIndex }
                 var firstItemOffset = remember { state.firstVisibleItemScrollOffset }
-                DragNoteItem(
-                    note = note,
+                DragNoteItem(note = note,
                     offsetY = offsetY,
                     move = move,
                     selected = selectedNotes.contains(note),
@@ -435,8 +389,7 @@ private fun DragNotesList(
                                 state.scrollToItem(firstItemIndex, firstItemOffset)
                             }
                         } else {
-                            val positionOffset =
-                                (offsetY / 80).toInt()
+                            val positionOffset = (offsetY / 80).toInt()
                             val newIndex = positionOffset + notesList.indexOf(note)
                             if (positionOffset != 0 && newIndex in notesList.indices) {
                                 offsetY -= positionOffset * 80
@@ -447,8 +400,7 @@ private fun DragNotesList(
                             val yPosition =
                                 (notesList.indexOf(note) - state.firstVisibleItemIndex) * 80 + offsetY - state.firstVisibleItemScrollOffset / d.density
                             ghostNote = GhostNoteData(
-                                note = note,
-                                offsetY = yPosition
+                                note = note, offsetY = yPosition
                             )
                         }
 
@@ -458,17 +410,14 @@ private fun DragNotesList(
                         ghostNote = null
                         scope.launch {
                             animate(
-                                initialValue = offsetY,
-                                targetValue = 0f,
-                                animationSpec = spring()
+                                initialValue = offsetY, targetValue = 0f, animationSpec = spring()
                             ) { value, _ ->
                                 offsetY = value
                             }
                         }
                     },
                     onClick = { onClick(note, false) },
-                    onLongClick = { onClick(note, true) }
-                )
+                    onLongClick = { onClick(note, true) })
             }
         }
         ghostNote?.let { noteData ->

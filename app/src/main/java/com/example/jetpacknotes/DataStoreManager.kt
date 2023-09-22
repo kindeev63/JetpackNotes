@@ -14,15 +14,27 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore("d
 
 class DataStoreManager(val context: Context) {
 
-    suspend fun saveFilterData(filterData: FilterData) {
+    suspend fun saveNotesFilterData(filterData: FilterData) {
         context.dataStore.edit { preference ->
             val stringFilterData = Gson().toJson(filterData)
-            preference[stringPreferencesKey("filter_data")] = stringFilterData
+            preference[stringPreferencesKey("notes_filter_data")] = stringFilterData
         }
     }
 
-    fun getFilterData(): Flow<FilterData?> = context.dataStore.data.map { preference ->
-        val stringFilterData = preference[stringPreferencesKey("filter_data")]
+    suspend fun saveTasksFilterData(filterData: FilterData) {
+        context.dataStore.edit { preference ->
+            val stringFilterData = Gson().toJson(filterData)
+            preference[stringPreferencesKey("tasks_filter_data")] = stringFilterData
+        }
+    }
+
+    fun getNotesFilterData(): Flow<FilterData?> = context.dataStore.data.map { preference ->
+        val stringFilterData = preference[stringPreferencesKey("notes_filter_data")]
+        stringFilterData?.let {Gson().fromJson(stringFilterData, FilterData::class.java)}
+    }
+
+    fun getTasksFilterData(): Flow<FilterData?> = context.dataStore.data.map { preference ->
+        val stringFilterData = preference[stringPreferencesKey("tasks_filter_data")]
         stringFilterData?.let {Gson().fromJson(stringFilterData, FilterData::class.java)}
     }
 }

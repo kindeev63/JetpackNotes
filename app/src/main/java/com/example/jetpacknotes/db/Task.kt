@@ -9,10 +9,14 @@ import java.io.Serializable
 data class Task(
     @PrimaryKey(autoGenerate = false)
     val id: Int = 0,
+    @ColumnInfo(name = "createTime")
+    val createTime: Long,
     @ColumnInfo(name = "title")
     var title: String,
     @ColumnInfo(name = "text")
     var text: String,
+    @ColumnInfo(name = "lastEditTime")
+    val lastEditTime: Long,
     @ColumnInfo(name = "done")
     var done: Boolean,
     @ColumnInfo(name = "categories")

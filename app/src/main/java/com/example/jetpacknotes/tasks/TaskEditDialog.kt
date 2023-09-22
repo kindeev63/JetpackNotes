@@ -55,6 +55,8 @@ import com.example.jetpacknotes.myItems.ColorSpinner
 import com.example.jetpacknotes.myItems.DialogActionButtons
 import com.example.jetpacknotes.myItems.PlaceholderTextField
 import com.example.jetpacknotes.viewModels.MainAppViewModel
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.ArrayList
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -110,7 +112,11 @@ fun TaskEditDialog(
                 TaskDescription(task = newTask)
                 DialogActionButtons(
                     onSave = {
-                        mainAppViewModel.insertTask(newTask.value) {
+                        val time = LocalDateTime.now().atZone(ZoneId.systemDefault()).withSecond(0).toInstant()
+                            .toEpochMilli()
+                        mainAppViewModel.insertTask(newTask.value.copy(
+                            lastEditTime = time
+                        )) {
                             onDismissRequest()
                         }
                     },
@@ -228,10 +234,14 @@ private fun createTask(mainAppViewModel: MainAppViewModel): Task {
         if (taskId !in idsList) break
         taskId++
     }
+    val time = LocalDateTime.now().atZone(ZoneId.systemDefault()).withSecond(0).toInstant()
+        .toEpochMilli()
     return Task(
         id = taskId,
+        createTime = time,
         title = "",
         text = "",
+        lastEditTime = time,
         done = false,
         categories = "",
         colorIndex = 0

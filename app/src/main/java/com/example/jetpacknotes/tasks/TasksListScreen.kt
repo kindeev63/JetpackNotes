@@ -2,7 +2,10 @@ package com.example.jetpacknotes.tasks
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
@@ -29,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -41,7 +46,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.jetpacknotes.Colors
 import com.example.jetpacknotes.FilterData
 import com.example.jetpacknotes.FilterType
 import com.example.jetpacknotes.db.Category
@@ -55,11 +59,18 @@ import com.example.jetpacknotes.viewModels.TasksListScreenViewModel
 import com.example.jetpacknotes.viewModels.TasksListScreenViewModelFactory
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
+import com.example.jetpacknotes.DataStoreManager
 import com.example.jetpacknotes.R
+import com.example.jetpacknotes.myItems.DragTaskItem
 import com.example.jetpacknotes.myItems.FilterDialog
+import com.example.jetpacknotes.myItems.GhostTaskData
+import com.example.jetpacknotes.myItems.GhostTaskItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -71,15 +82,39 @@ fun TasksListScreen(
         factory = TasksListScreenViewModelFactory(mainAppViewModel)
     )
     val allTasks = mainAppViewModel.allTasks.observeAsState(emptyList())
+    mainAppViewModel.allTasks.observe(LocalLifecycleOwner.current) {
+        viewModel.filterTasks()
+    }
     val allCategories = mainAppViewModel.categoryOfTasks.observeAsState(emptyList())
     val selectedTasks = viewModel.selectedTasks.observeAsState(emptyList())
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val dataStoreManager = remember { DataStoreManager(context) }
+    LaunchedEffect(Unit) {
+        dataStoreManager.getTasksFilterData().collect { filDataNullable ->
+            val filData = filDataNullable ?: FilterData(
+                colorIndex = null,
+                type = FilterType.Create
+            )
+            val checkedData = viewModel.checkHandTasks(
+                allTasks = allTasks.value,
+                data = filData.data
+            )
+            val checkedFilterData = filData.copy(data = checkedData)
+            if (filDataNullable?.data != checkedData) {
+                scope.launch {
+                    dataStoreManager.saveNotesFilterData(checkedFilterData)
+                }
+            }
+            viewModel.setFilterData(checkedFilterData)
+        }
+    }
 
     val category = viewModel.category.observeAsState()
     val searchText = viewModel.searchText.observeAsState()
-    val filterData = viewModel.filterData.observeAsState(FilterData(null, FilterType.Edit))
+    val filterData = viewModel.filterData.observeAsState()
 
     viewModel.checkCategory(category.value, allCategories.value)
-
     var openCategoryDialog by rememberSaveable {
         mutableStateOf<Category?>(null)
     }
@@ -98,12 +133,22 @@ fun TasksListScreen(
         mutableStateOf(false)
     }
     if (openFilterDialog) {
-        FilterDialog(
-            currentData = filterData.value,
-            types = listOf(FilterType.Create, FilterType.Color),
-            onDismissRequest = { openFilterDialog = false },
-            setFilter = viewModel::setFilterData
-        )
+
+        filterData.value?.let { filData ->
+            FilterDialog(
+                currentData = filData,
+                types = listOf(
+                    FilterType.Create, FilterType.Edit, FilterType.Color, FilterType.Hand
+                ),
+                onDismissRequest = { openFilterDialog = false },
+                setFilter = {
+                    val newFilterData = it.copy(data = filterData.value?.data)
+                    scope.launch {
+                        dataStoreManager.saveTasksFilterData(newFilterData)
+                    }
+                    viewModel.setFilterData(newFilterData)
+                })
+        }
     }
 
     var openTaskDialog by rememberSaveable {
@@ -123,8 +168,6 @@ fun TasksListScreen(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        val context = LocalContext.current
-        val scope = rememberCoroutineScope()
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         TasksListAppBar(
             title = category.value?.name ?: "All Tasks",
@@ -189,26 +232,60 @@ fun TasksListScreen(
                     }
                 }
             ) {
-                val tasksList = viewModel.filterTasks(
-                    tasks = allTasks.value,
-                    category = category.value,
-                    searchText = searchText.value,
-                    filterData = filterData.value
-                )
-                TasksList(
-                    tasksList = tasksList,
-                    selectedTasks = selectedTasks.value,
-                    onClick = { task, long ->
-                        if (long || selectedTasks.value.isNotEmpty()) {
-                            viewModel.changeSelectionStateOf(task)
-                        } else {
-                            openTaskDialog = TaskForDialog(task = task)
+
+                if (filterData.value?.type != FilterType.Hand) {
+                    TasksList(
+                        viewModel = viewModel,
+                        onClick = { task, long ->
+                            if (long || selectedTasks.value.isNotEmpty()) {
+                                viewModel.changeSelectionStateOf(task)
+                            } else {
+                                openTaskDialog = TaskForDialog(task = task)
+                            }
+                        },
+                        onCheckedChange = { task, done ->
+                            mainAppViewModel.insertTask(task.copy(done = done))
                         }
-                    },
-                    onCheckedChange = { task, done ->
-                        mainAppViewModel.insertTask(task.copy(done = done))
+                    )
+                } else {
+                    filterData.value?.let {
+                        DragTasksList(
+                            viewModel = viewModel,
+                            moveTask = { task, index ->
+                                val newData = viewModel.moveHandTask(
+                                    data = filterData.value?.data, index = index, id = task.id
+                                )
+                                val newFilterData = filterData.value?.copy(data = newData)
+                                scope.launch {
+                                    dataStoreManager.saveTasksFilterData(newFilterData!!)
+                                }
+                                viewModel.setFilterData(newFilterData)
+                            },
+                            onClick = { task, long ->
+                                if (long || selectedTasks.value.isNotEmpty()) {
+                                    viewModel.changeSelectionStateOf(task)
+                                } else {
+                                    openTaskDialog = TaskForDialog(task = task)
+                                }
+                            },
+                            onCheckedChange = { task, done ->
+                                mainAppViewModel.insertTask(task.copy(done = done)) {
+                                    val newData = viewModel.checkHandTasks(
+                                        allTasks = allTasks.value,
+                                        data = filterData.value?.data
+                                    )
+                                    val newFilterData = filterData.value?.copy(data = newData)
+                                    scope.launch {
+                                        dataStoreManager.saveTasksFilterData(newFilterData!!)
+                                    }
+                                    viewModel.setFilterData(newFilterData)
+                                }
+
+                            }
+                        )
                     }
-                )
+
+                }
             }
 
         }
@@ -217,11 +294,12 @@ fun TasksListScreen(
 
 @Composable
 private fun TasksList(
-    tasksList: List<Task>,
-    selectedTasks: List<Task>,
+    viewModel: TasksListScreenViewModel,
     onClick: (Task, Boolean) -> Unit,
     onCheckedChange: (Task, Boolean) -> Unit
 ) {
+    val tasksList by viewModel.tasksList.observeAsState(emptyList())
+    val selectedTasks by viewModel.selectedTasks.observeAsState(emptyList())
     val doneTasks = tasksList.filter { it.done }
     val notDoneTasks = tasksList.filter { !it.done }
     LazyColumn {
@@ -229,9 +307,7 @@ private fun TasksList(
             key = { it.id }
         ) { task ->
             TaskItem(
-                title = task.title,
-                color = Colors.colors[task.colorIndex],
-                done = task.done,
+                task = task,
                 selected = task in selectedTasks,
                 onClick = {
                     onClick(task, false)
@@ -245,16 +321,14 @@ private fun TasksList(
             )
         }
         if (doneTasks.isNotEmpty()) {
-            item{
+            item {
                 Divider()
             }
             items(items = doneTasks,
                 key = { it.id }
             ) { task ->
                 TaskItem(
-                    title = task.title,
-                    color = Colors.colors[task.colorIndex],
-                    done = task.done,
+                    task = task,
                     selected = task in selectedTasks,
                     onClick = {
                         onClick(task, false)
@@ -268,7 +342,119 @@ private fun TasksList(
                 )
             }
         }
+    }
+}
 
+@Composable
+private fun DragTasksList(
+    viewModel: TasksListScreenViewModel,
+    moveTask: (Task, Int) -> Unit,
+    onClick: (Task, Boolean) -> Unit,
+    onCheckedChange: (Task, Boolean) -> Unit
+) {
+    val tasksList by viewModel.tasksList.observeAsState(emptyList())
+    val selectedTasks by viewModel.selectedTasks.observeAsState(emptyList())
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        var ghostTask by remember {
+            mutableStateOf<GhostTaskData?>(null)
+        }
+        val state = rememberLazyListState()
+        val d = LocalDensity.current
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            state = state,
+        ) {
+            items(items = tasksList.filter { !it.done }, key = { it.id }) { task ->
+                var offsetY by remember { mutableStateOf(0f) }
+                var move by remember { mutableStateOf(false) }
+                var dragStartPosition by remember { mutableStateOf(0f) }
+                val scope = rememberCoroutineScope()
+                var firstItemIndex = remember { state.firstVisibleItemIndex }
+                var firstItemOffset = remember { state.firstVisibleItemScrollOffset }
+                DragTaskItem(
+                    task = task,
+                    offsetY = offsetY,
+                    move = move,
+                    selected = selectedTasks.contains(task),
+                    onDragStart = {
+                        dragStartPosition = it / d.density
+                        move = true
+                        firstItemIndex = state.firstVisibleItemIndex
+                        firstItemOffset = state.firstVisibleItemScrollOffset
+                    },
+                    onVerticalDrag = { positionY ->
+                        if (state.firstVisibleItemIndex != firstItemIndex || state.firstVisibleItemScrollOffset != firstItemOffset) {
+                            scope.launch {
+                                state.scrollToItem(firstItemIndex, firstItemOffset)
+                            }
+                        } else {
+                            val positionOffset = (offsetY / 80).toInt()
+                            val newIndex = positionOffset + tasksList.filter { !it.done }.indexOf(task)
+                            if (positionOffset != 0 && newIndex in tasksList.filter { !it.done }.indices) {
+                                offsetY -= positionOffset * 80
+                                moveTask(task, newIndex)
+                            } else {
+                                offsetY += positionY / d.density - dragStartPosition
+                            }
+                            val yPosition =
+                                (tasksList.filter { !it.done }.indexOf(task) - state.firstVisibleItemIndex) * 80 + offsetY - state.firstVisibleItemScrollOffset / d.density
+                            ghostTask = GhostTaskData(
+                                task = task, offsetY = yPosition
+                            )
+                        }
+
+                    },
+                    onDragEnd = {
+                        move = false
+                        ghostTask = null
+                        scope.launch {
+                            animate(
+                                initialValue = offsetY, targetValue = 0f, animationSpec = spring()
+                            ) { value, _ ->
+                                offsetY = value
+                            }
+                        }
+                    },
+                    onClick = { onClick(task, false) },
+                    onLongClick = { onClick(task, true) },
+                    onCheckChange = {
+                        onCheckedChange(task, it)
+                    }
+                )
+            }
+
+            if (tasksList.any { it.done }) {
+                item {
+                    Divider()
+                }
+                items(items = tasksList.filter { it.done },
+                    key = { it.id }
+                ) { task ->
+                    TaskItem(
+                        task = task,
+                        selected = task in selectedTasks,
+                        onClick = {
+                            onClick(task, false)
+                        },
+                        onLongClick = {
+                            onClick(task, true)
+                        },
+                        onCheckChange = {
+                            onCheckedChange(task, it)
+                        }
+                    )
+                }
+            }
+        }
+        ghostTask?.let { taskData ->
+            GhostTaskItem(
+                task = taskData.task,
+                offsetY = taskData.offsetY,
+                selected = selectedTasks.contains(taskData.task)
+            )
+        }
     }
 }
 
