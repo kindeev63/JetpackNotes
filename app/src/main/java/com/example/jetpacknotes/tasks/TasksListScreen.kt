@@ -103,7 +103,7 @@ fun TasksListScreen(
             val checkedFilterData = filData.copy(data = checkedData)
             if (filDataNullable?.data != checkedData) {
                 scope.launch {
-                    dataStoreManager.saveNotesFilterData(checkedFilterData)
+                    dataStoreManager.saveTasksFilterData(checkedFilterData)
                 }
             }
             viewModel.setFilterData(checkedFilterData)
@@ -232,7 +232,6 @@ fun TasksListScreen(
                     }
                 }
             ) {
-
                 if (filterData.value?.type != FilterType.Hand) {
                     TasksList(
                         viewModel = viewModel,

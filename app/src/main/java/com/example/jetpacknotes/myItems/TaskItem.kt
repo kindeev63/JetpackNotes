@@ -4,10 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -34,12 +31,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.jetpacknotes.Colors
-import com.example.jetpacknotes.db.Note
 import com.example.jetpacknotes.db.Task
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -102,8 +95,11 @@ fun LazyItemScope.DragTaskItem(
                         colors = CheckboxDefaults.colors(
                             checkedColor = Color(Colors.colors[task.colorIndex].primary),
                             uncheckedColor = Color(Colors.colors[task.colorIndex].primary),
+                            disabledCheckedColor = Color(Colors.colors[task.colorIndex].primary),
+                            disabledUncheckedColor = Color(Colors.colors[task.colorIndex].primary)
                         ),
                         checked = task.done,
+                        enabled = !selected,
                         onCheckedChange = onCheckChange
                     )
                     Row(
@@ -202,8 +198,11 @@ fun TaskItem(
                     colors = CheckboxDefaults.colors(
                         checkedColor = Color(Colors.colors[task.colorIndex].primary),
                         uncheckedColor = Color(Colors.colors[task.colorIndex].primary),
+                        disabledCheckedColor = Color(Colors.colors[task.colorIndex].primary),
+                        disabledUncheckedColor = Color(Colors.colors[task.colorIndex].primary)
                     ),
                     checked = task.done,
+                    enabled = !selected,
                     onCheckedChange = onCheckChange
                 )
                 Row(
@@ -269,8 +268,11 @@ fun GhostTaskItem(
                     colors = CheckboxDefaults.colors(
                         checkedColor = Color(Colors.colors[task.colorIndex].primary),
                         uncheckedColor = Color(Colors.colors[task.colorIndex].primary),
+                        disabledCheckedColor = Color(Colors.colors[task.colorIndex].primary),
+                        disabledUncheckedColor = Color(Colors.colors[task.colorIndex].primary)
                     ),
                     checked = task.done,
+                    enabled = false,
                     onCheckedChange = {}
                 )
                 Row(

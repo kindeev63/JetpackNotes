@@ -4,7 +4,6 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import androidx.compose.runtime.MutableState
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -12,7 +11,6 @@ import com.example.jetpacknotes.FilterData
 import com.example.jetpacknotes.FilterType
 import com.example.jetpacknotes.db.Category
 import com.example.jetpacknotes.db.CategoryType
-import com.example.jetpacknotes.db.Note
 import com.example.jetpacknotes.db.Task
 import com.example.jetpacknotes.receivers.AlarmReceiver
 
@@ -106,7 +104,6 @@ class TasksListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
             .filter { task ->
                 filterData.value?.colorIndex == null || task.colorIndex == filterData.value?.colorIndex
             }.reversed()
-
         // Ordering by filter type
         _tasksList.value = when (filterData.value?.type) {
 
@@ -123,8 +120,9 @@ class TasksListScreenViewModel(private val mainAppViewModel: MainAppViewModel) :
             }
 
             FilterType.Hand -> {
+                val data = checkHandTasks(mainAppViewModel.allTasks.value?: emptyList(), filterData.value?.data)
                 arrayListOf<Task>().apply {
-                    filterData.value?.data?.split(" | ")?.map { it.toInt() }?.forEach { id ->
+                    data?.split(" | ")?.map { it.toInt() }?.forEach { id ->
                         filteredTasks.find { note -> note.id == id }?.let { note ->
                             add(note)
                         }
