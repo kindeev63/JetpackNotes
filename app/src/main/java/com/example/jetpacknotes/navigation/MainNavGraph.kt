@@ -21,7 +21,7 @@ fun MainNavGraph(
         composable(
             route = Screen.NoteEdit.route,
         ) {
-            val noteId = it.arguments?.get("bundle").toString().toIntOrNull()
+            val noteId = it.arguments?.get("id").toString().toIntOrNull()
             noteEditScreenContent(noteId)
         }
     }

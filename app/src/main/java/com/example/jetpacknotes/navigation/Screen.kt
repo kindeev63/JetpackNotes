@@ -16,7 +16,7 @@ sealed class Screen(
     private companion object {
         const val ROUTE_BOTTOM_NAVIGATION = "bottom_navigation"
         const val ROUTE_NOTES_LIST = "notes_list"
-        const val ROUTE_NOTE_EDIT = "note_edit/{bundle}"
+        const val ROUTE_NOTE_EDIT = "note_edit/{id}"
         const val ROUTE_REMINDERS_LIST = "reminders_list"
         const val ROUTE_TASKS_LIST = "tasks_list"
     }
